@@ -8,7 +8,7 @@ Add to your project:
 
 ```bash
 git submodule add https://github.com/DazzleTools/git-repokit-common.git scripts/repokit-common
-bash scripts/repokit-common/scripts/install-hooks.sh
+bash scripts/repokit-common/install-hooks.sh
 ```
 
 Update to latest:
@@ -19,7 +19,7 @@ cd scripts/repokit-common && git pull origin main
 
 ## What's Included
 
-### Git Hooks (`scripts/hooks/`)
+### Git Hooks (`hooks/`)
 - **pre-commit** -- Version sync (`sync-versions.py --auto`), private content protection, large file blocking
 - **post-commit** -- Refreshes version hash after commit
 - **pre-push** -- Python syntax check, pytest, debug statement detection

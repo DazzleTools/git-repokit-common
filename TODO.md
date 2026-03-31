@@ -14,11 +14,11 @@ After adding `git-repokit-common` as a submodule or worktree, complete these ste
   private-patterns = ["private/", "local/", ".env"]
   ```
 - [ ] **Create `_version.py`**: Copy the version module template into your package directory and edit the initial version values
-- [ ] **Install hooks**: Run `bash scripts/repokit-common/scripts/install-hooks.sh`
+- [ ] **Install hooks**: Run `bash scripts/repokit-common/install-hooks.sh`
 
 ## Customize (as needed)
 
-- [ ] **VHS demo tapes** (`scripts/vhs/*.tape`): Replace `repokit-common` with your actual CLI command name
+- [ ] **VHS demo tapes** (`vhs/*.tape`): Replace `repokit-common` with your actual CLI command name
 - [ ] **demo_render.py**: Rewrite with your project's output format (the existing content is a template/example)
 - [ ] **Pre-push hook**: Verify the auto-detected package directory is correct for your project
 
