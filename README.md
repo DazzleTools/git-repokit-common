@@ -1,71 +1,64 @@
-# $PROJECT_NAME
+# git-repokit-common
 
-$DESCRIPTION
+Shared scripts, hooks, and developer tools for DazzleTools projects. Consumed as a git submodule in `scripts/`.
 
-## Installation
+## Quick Start
+
+Add to your project:
 
 ```bash
-pip install $PACKAGE_NAME
+git submodule add https://github.com/DazzleTools/git-repokit-common.git scripts/repokit-common
+bash scripts/repokit-common/scripts/install-hooks.sh
 ```
 
-### From Source
+Update to latest:
 
 ```bash
-git clone https://github.com/$GITHUB_ORG/$PROJECT_NAME.git
-cd $PROJECT_NAME
-pip install -e ".[dev]"
+cd scripts/repokit-common && git pull origin main
 ```
 
-## Usage
+## What's Included
 
-```bash
-$CLI_COMMAND --help
-```
+### Git Hooks (`scripts/hooks/`)
+- **pre-commit** -- Version sync (`sync-versions.py --auto`), private content protection, large file blocking
+- **post-commit** -- Refreshes version hash after commit
+- **pre-push** -- Python syntax check, pytest, debug statement detection
 
-## Development
+### Version Management
+- **sync-versions.py** -- Single source of truth for version bumping with git metadata (branch, build count, date, hash)
+- **update-version.sh** -- Legacy bash version updater (deprecated; use sync-versions.py)
 
-```bash
-# Clone and install
-git clone https://github.com/$GITHUB_ORG/$PROJECT_NAME.git
-cd $PROJECT_NAME
-python -m venv .venv
-source .venv/bin/activate  # or .venv\Scripts\activate on Windows
-pip install -e ".[dev]"
+### GitHub Tools
+- **gh_issue_full.py** -- Display complete issue context: timeline, cross-refs, sub-issues, comments
+- **gh_sub_issues.py** -- Manage GitHub sub-issue relationships
 
-# Run tests
-python -m pytest tests/ -v
+### Claude Code Session Tools
+- **search_sesslog.py** -- Search Claude Code JSONL session transcripts
+- **extract_tool_result.py** -- Find and extract tool results from session data
 
-# Install git hooks (if using repokit-common submodule)
-bash scripts/repokit-common/install-hooks.sh
+### CLI Demo Recording
+- **build_demo.py** -- Build CLI demo recordings
+- **demo_render.py** -- Render demo recordings
+- **vhs/** -- VHS tape templates for CLI demo recording
+
+### Utilities
+- **install-hooks.sh** -- Install git hooks from this submodule into `.git/hooks/`
+- **paths.sh** -- Common path constants for scripts
+- **safe_move.sh** -- Hash-verified file move with timestamp preservation
+
+## Configuration
+
+Projects configure repokit-common via `[tool.repokit-common]` in `pyproject.toml`:
+
+```toml
+[tool.repokit-common]
+version-source = "mypackage/_version.py"
+changelog = "CHANGELOG.md"
+repo-url = "https://github.com/DazzleTools/my-project"
+tag-prefix = "v"
+private-patterns = ["private/", "local/", ".env"]
 ```
 
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE) for details.
-
----
-
-## Template Variables
-
-When creating a project from this template, replace these placeholders:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `$PROJECT_NAME` | Repository/project name | `my-cool-tool` |
-| `$PACKAGE_NAME` | Python package name (underscores) | `my_cool_tool` |
-| `$DESCRIPTION` | One-line project description | `A tool that does cool things` |
-| `$GITHUB_ORG` | GitHub organization or user | `DazzleTools` |
-| `$GITHUB_USER` | GitHub username | `djdarcy` |
-| `$AUTHOR_EMAIL` | Author email | `user@example.com` |
-| `$CLI_COMMAND` | CLI entry point command | `mytool` |
-
-Quick replacement (after cloning from template):
-```bash
-# Linux/Mac
-find . -type f -not -path "./.git/*" -exec sed -i 's/\$PROJECT_NAME/my-cool-tool/g' {} +
-find . -type f -not -path "./.git/*" -exec sed -i 's/\$PACKAGE_NAME/my_cool_tool/g' {} +
-# ... etc for each variable
-
-# Or use git-repokit:
-repokit adopt . --name my-cool-tool
-```
