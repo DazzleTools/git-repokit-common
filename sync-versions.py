@@ -62,6 +62,8 @@ _DEFAULT_VERSION_SOURCE = "$PACKAGE_NAME/_version.py"
 _DEFAULT_CHANGELOG_FILE = "CHANGELOG.md"
 _DEFAULT_REPO_URL = "https://github.com/$GITHUB_ORG/$PROJECT_NAME"
 _DEFAULT_TAG_PREFIX = "v"
+_DEFAULT_TAG_FORMAT = "pep440"  # "pep440" or "human"
+_VALID_TAG_FORMATS = {"pep440", "human"}
 
 def _load_config():
     """Load config from pyproject.toml [tool.repokit-common] or use defaults."""
@@ -83,18 +85,29 @@ def _load_config():
                     data = tomllib.load(f)
                 cfg = data.get("tool", {}).get("repokit-common", {})
                 if cfg:
+                    tag_format = cfg.get("tag-format", _DEFAULT_TAG_FORMAT)
+                    if tag_format not in _VALID_TAG_FORMATS:
+                        print(
+                            f"Warning: unknown tag-format '{tag_format}' "
+                            f"in pyproject.toml (expected: {', '.join(sorted(_VALID_TAG_FORMATS))}). "
+                            f"Falling back to '{_DEFAULT_TAG_FORMAT}'.",
+                            file=sys.stderr,
+                        )
+                        tag_format = _DEFAULT_TAG_FORMAT
                     return (
                         cfg.get("version-source", _DEFAULT_VERSION_SOURCE),
                         cfg.get("changelog", _DEFAULT_CHANGELOG_FILE),
                         cfg.get("repo-url", _DEFAULT_REPO_URL),
                         cfg.get("tag-prefix", _DEFAULT_TAG_PREFIX),
+                        tag_format,
                     )
             break
         check_dir = check_dir.parent
 
-    return _DEFAULT_VERSION_SOURCE, _DEFAULT_CHANGELOG_FILE, _DEFAULT_REPO_URL, _DEFAULT_TAG_PREFIX
+    return (_DEFAULT_VERSION_SOURCE, _DEFAULT_CHANGELOG_FILE, _DEFAULT_REPO_URL,
+            _DEFAULT_TAG_PREFIX, _DEFAULT_TAG_FORMAT)
 
-VERSION_SOURCE, CHANGELOG_FILE, REPO_URL, TAG_PREFIX = _load_config()
+VERSION_SOURCE, CHANGELOG_FILE, REPO_URL, TAG_PREFIX, TAG_FORMAT = _load_config()
 # --------------------------------------------------------------------
 
 
@@ -372,7 +385,14 @@ def to_pep440(components: dict) -> str:
 
 
 def to_tag(components: dict) -> str:
-    """Convert to git tag format (e.g., v0.2.3, v0.2.3a1)."""
+    """Convert to git tag format, respecting project's tag-format config.
+
+    tag-format options (set in pyproject.toml [tool.repokit-common]):
+      "pep440" (default): v0.2.3a1, v0.2.3b1, v0.2.3rc1, v0.2.3
+      "human":            v0.2.3-alpha, v0.2.3-beta, v0.2.3-rc1, v0.2.3
+    """
+    if TAG_FORMAT == "human":
+        return f"{TAG_PREFIX}{format_human_version(components)}"
     return f"{TAG_PREFIX}{to_pep440(components)}"
 
 

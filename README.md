@@ -68,8 +68,20 @@ version-source = "mypackage/_version.py"
 changelog = "CHANGELOG.md"
 repo-url = "https://github.com/DazzleTools/my-project"
 tag-prefix = "v"
+tag-format = "pep440"
 private-patterns = ["private/", "local/", ".env"]
 ```
+
+### Tag Format
+
+The `tag-format` option controls how git tags are generated for CHANGELOG compare links and `--check` validation:
+
+| Value | Example Tag | When to Use |
+|-------|-------------|-------------|
+| `"pep440"` (default) | `v0.1.3a1` | Projects using PEP 440 tags for PyPI compatibility |
+| `"human"` | `v0.1.3-alpha` | Projects using human-readable tags matching CHANGELOG headers |
+
+For stable releases (no phase suffix), both formats produce identical tags (`v0.5.0`). The difference only matters for pre-release versions (alpha, beta, rc).
 
 ## License
 
