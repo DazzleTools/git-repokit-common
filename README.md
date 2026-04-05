@@ -20,13 +20,9 @@ bash scripts/install-hooks.sh
 Update to latest:
 
 ```bash
-git subtree pull --prefix=scripts repokit-common main --squash
-```
-
-Push local improvements back upstream:
-
-```bash
-git subtree push --prefix=scripts repokit-common main
+bash scripts/update-common.sh            # pull latest
+bash scripts/update-common.sh --check    # check if behind upstream
+bash scripts/update-common.sh --push     # push local changes upstream
 ```
 
 ## What's Included
@@ -37,7 +33,7 @@ git subtree push --prefix=scripts repokit-common main
 - **pre-push** -- Python syntax check, pytest, debug statement detection
 
 ### Version Management
-- **sync-versions.py** -- Single source of truth for version bumping with git metadata (branch, build count, date, hash)
+- **sync-versions.py** -- Single source of truth for version bumping with git metadata. See [docs/sync-versions.md](docs/sync-versions.md) for full reference.
 - **update-version.sh** -- Legacy bash version updater (deprecated; use sync-versions.py)
 
 ### GitHub Tools
