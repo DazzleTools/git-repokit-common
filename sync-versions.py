@@ -526,6 +526,18 @@ def update_changelog_links(
 # Git helpers
 # ---------------------------------------------------------------------------
 
+def git_tag_exists(root: Path, tag: str) -> bool:
+    """Check if a git tag exists in the repository."""
+    try:
+        result = subprocess.run(
+            ["git", "tag", "-l", tag],
+            cwd=str(root), capture_output=True, text=True, check=True,
+        )
+        return tag in result.stdout.strip().split("\n")
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
 def git_stage(root: Path, *files: str) -> None:
     """Stage files for commit."""
     try:
@@ -765,9 +777,18 @@ def main():
             human_ver = format_human_version(components)
             # Check that the link ends with the correct tag (not a substring like v0.2.3a1 matching v0.2.3)
             link_pattern = rf"^\[{re.escape(human_ver)}\]:.*\.\.\.{re.escape(tag)}$"
-            if not re.search(link_pattern, content, re.MULTILINE):
-                all_synced = False
-                print(f"  [X] {CHANGELOG_FILE}: compare link for [{human_ver}] missing or wrong tag (expected {tag})")
+            # Also accept releases/tag/ format (used for first release with no prior tag)
+            release_pattern = rf"^\[{re.escape(human_ver)}\]:.*releases/tag/{re.escape(tag)}$"
+            if not re.search(link_pattern, content, re.MULTILINE) and \
+               not re.search(release_pattern, content, re.MULTILINE):
+                # Check if the tag exists yet -- new repos won't have tags before first release
+                if not git_tag_exists(root, tag):
+                    # Tag doesn't exist yet -- this is expected for unreleased versions
+                    if not quiet:
+                        print(f"  [--] {CHANGELOG_FILE}: [{human_ver}] link references {tag} (tag not yet created, OK)")
+                else:
+                    all_synced = False
+                    print(f"  [X] {CHANGELOG_FILE}: compare link for [{human_ver}] missing or wrong tag (expected {tag})")
             elif args.verbose:
                 print(f"  [OK] {CHANGELOG_FILE}: compare link for [{human_ver}] correct")
     else:

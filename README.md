@@ -48,10 +48,10 @@ git subtree push --prefix=scripts repokit-common main
 - **search_sesslog.py** -- Search Claude Code JSONL session transcripts
 - **extract_tool_result.py** -- Find and extract tool results from session data
 
-### CLI Demo Recording
-- **build_demo.py** -- Build CLI demo recordings
-- **demo_render.py** -- Render demo recordings
-- **vhs/** -- VHS tape templates for CLI demo recording
+### CLI Demo Recording (`demo/`)
+- **demo/build_demo.py** -- Build CLI demo recordings
+- **demo/demo_render.py** -- Render demo recordings
+- **demo/vhs/** -- VHS tape templates for CLI demo recording
 
 ### Utilities
 - **install-hooks.sh** -- Install git hooks from this submodule into `.git/hooks/`
