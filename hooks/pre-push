@@ -14,6 +14,19 @@ NC='\033[0m' # No Color
 # Change to repository root
 cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
 
+# Skip validation for tag-only pushes (no code changed, no need to retest)
+PUSHING_TAGS_ONLY=true
+while read local_ref local_sha remote_ref remote_sha; do
+    if [[ "$local_ref" != refs/tags/* ]]; then
+        PUSHING_TAGS_ONLY=false
+        break
+    fi
+done
+if $PUSHING_TAGS_ONLY; then
+    echo -e "${GREEN}Tag-only push -- skipping validation${NC}"
+    exit 0
+fi
+
 # Auto-detect the Python package directory
 # Looks for a directory containing __init__.py at the project root or under src/
 PACKAGE_DIR=""
