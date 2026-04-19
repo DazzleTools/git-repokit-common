@@ -79,6 +79,10 @@ The `tag-format` option controls how git tags are generated for CHANGELOG compar
 
 For stable releases (no phase suffix), both formats produce identical tags (`v0.5.0`). The difference only matters for pre-release versions (alpha, beta, rc).
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for the full version history. Current version: see [`VERSION`](VERSION).
+
 ## License
 
 GPL-3.0-or-later. See [LICENSE](LICENSE) for details.
