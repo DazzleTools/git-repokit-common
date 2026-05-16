@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.5] - 2026-05-15
+
+### Fixed
+
+- **`update-version.sh` package auto-detection on src/ layout**: the auto-detect added in v0.2.2 walked only top-level directories looking for `__init__.py` + `_version.py` together. On PEP 517 / setuptools src-layout projects (where the package lives at `src/<package>/`, not at the repo root), no top-level dir contains those files, so the script exited with `Error: Could not find _version.py in any package directory`. Added the same `src/*/` fallback that `pre-push` already has — first the flat loop, then `src/*/` if `src/` exists and the flat loop didn't find a candidate. Discovered while integrating repokit-common into a src-layout project (`DazzleTools/dazzlecmd` -- src/dazzlecmd/_version.py); pre-commit hooks weren't affected (they use `sync-versions.py --auto` which reads `version-source` from `[tool.repokit-common]`), but anyone running `bash scripts/update-version.sh` manually on a src-layout project hit the bug. Note: `update-version.sh` is upstream-deprecated in favor of `sync-versions.py`, but the fix keeps the legacy fallback functional for consumers that haven't migrated yet.
+
 ## [0.2.4] - 2026-04-19
 
 ### Fixed
@@ -128,7 +134,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.4...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.5...HEAD
+[0.2.5]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.1.4-alpha...v0.2.2
