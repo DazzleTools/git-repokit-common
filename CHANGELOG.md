@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.6] - 2026-05-18
+
+### Added
+
+- **`generate-backlinks.py`**: Obsidian-style reverse-link index generator for `private/claude/` knowledge vaults. Walks all `.md` files, parses `[[wikilinks]]` and `[[wikilinks|aliases]]`, builds a reverse-link (backlinks) index, writes to `_oracle/backlinks.md`. Zero deps beyond Python stdlib; optional `networkx` for `--graph FILE` export. Flags: `--stats` (summary), `--orphans` (notes with no links in either direction), `--broken` (dangling wikilinks), `--validate` (regenerate + report), `--dry-run`, `--json`. Auto-detects vault from cwd via the `private/claude/` or `_maps/` markers, or accepts an explicit path arg. Powers the "Phase 1a" RAG-lite metadata that the Claude Code `oracle` agent expects (`_oracle/manifest.md`, `_oracle/concepts.md`, `_oracle/backlinks.md`); without it, oracle's "what references X?" queries fall back to recursive grep.
+
+  **Provenance note:** originally written in `github-traffic-tracker`; ships here so every repokit-common consumer (amdead, wtf-windows, Prime-Square-Sum, dazzlecmd, etc.) picks it up via subtree pull. Long-term home is a `dazzlecmd` tool (see `DazzleTools/dazzlecmd#70` — graduate fully-generic utility scripts to dazzlecmd tools); this distribution channel is a stepping stone, not the destination.
+
 ## [0.2.5] - 2026-05-15
 
 ### Fixed
