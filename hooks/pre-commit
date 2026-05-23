@@ -48,9 +48,25 @@ case "$current_branch" in
         ;;
 esac
 
-# Check for private content using patterns specific to this project
+# Check for private content using patterns specific to this project.
+#
+# Allowlist support: if .repokit-allowlist exists in repo root, paths listed
+# there (one per line, # comments allowed, blank lines OK) bypass the private-
+# content regex check below. Intended for DELIBERATE move-aside artifacts that
+# carry signal-bearing extensions like .bak (preserved pre-pivot source: "this
+# is the old version, do not use this") which would otherwise trip the regex.
+ALLOWLIST_FILE="$REPO_ROOT/.repokit-allowlist"
+allowed() {
+    [ -f "$ALLOWLIST_FILE" ] || return 1
+    grep -v '^[[:space:]]*#' "$ALLOWLIST_FILE" | grep -v '^[[:space:]]*$' | grep -Fxq -- "$1"
+}
+
 has_private_content=0
 for file in $(git diff --cached --name-only); do
+    # Skip allowlisted paths
+    if allowed "$file"; then
+        continue
+    fi
     # Check against private content patterns
     if echo "$file" | grep -q -E "^.*/__private__.*|^.*/private_.*|^.*~$|\.backup$|\.bak$|\.log$|\.tmp$|^\.env.*|^\.env\.local$|^\.env\.private$|^convos/|^credentials/|^logs/|^nul$|^private/|^revisions/|^secrets/|^test-runs/|^test_runs/"; then
         if [ $has_private_content -eq 0 ]; then
