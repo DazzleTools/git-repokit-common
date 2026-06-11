@@ -8,6 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.7] - 2026-06-11
+
+Formal release of the nested-subtree-placement fixes: consumers can now mount
+the subtree at `scripts/repokit-common/` (keeping their own project scripts in
+`scripts/` without collisions) and have every path-dependent tool work. Folds in
+the earlier hook fix (155be9b, shipped unversioned) and completes the path
+helpers it left untouched.
+
+### Fixed
+
+- **Hooks resolve the version script layout-agnostically** (155be9b): `hooks/pre-commit` and `hooks/post-commit` try `scripts/repokit-common/sync-versions.py`, then `scripts/sync-versions.py`, then a recursive `find` under `scripts/` (same for the `update-version.sh` fallback). The hardcoded flat path silently no-op'd the version stamp for every nested-layout consumer. `install-hooks.sh` help text prints the resolved path. Also adds `.repokit-allowlist` support to the private-content check.
+- **`paths.sh`**: `REPO_ROOT` now walks up to the nearest `.git` (dir or worktree file) instead of assuming the scripts-repo's parent directory -- which was wrong for any nesting depth other than flat `scripts/`.
+- **`update-common.sh`**: `REPO_ROOT` via `git rev-parse --show-toplevel`; subtree `PREFIX` derived from the script's own location relative to the repo root, so `update-common.sh --check/--push` and `git subtree pull` work at any prefix depth (e.g. `scripts/repokit-common`).
+
+First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scripts/`; subtree moves to `scripts/repokit-common/`).
+
 ## [0.2.6] - 2026-05-18
 
 ### Added
