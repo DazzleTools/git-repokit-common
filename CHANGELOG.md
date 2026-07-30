@@ -8,6 +8,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-07-29
+
+### Fixed
+
+- **`hooks/pre-commit` no longer word-splits staged paths.** Both checks iterated `for file in $(git diff --cached --name-only)`, which splits on whitespace, so `my report.log` arrived as `my` and `report.log`. Two consequences: the private-content regex matched fragments rather than whole paths, and the large-file guard's `[ -f "$file" ]` test failed on every fragment -- meaning **any file whose name contained a space was never size-checked at all**. Both checks now read a NUL-delimited list, the only safe form for paths.
+
+  Note for anyone applying this pattern elsewhere: the list must be carried in a *file*, not a shell variable. Command substitution strips NUL bytes, so `X=$(git ... -z)` silently concatenates every path into a single string, and the checks then inspect one nonexistent filename instead of the staged set.
+
+- **Version-script resolution reaches subtrees mounted outside `scripts/`.** v0.2.7 generalized the lookup across `scripts/repokit-common/`, `scripts/`, and a recursive `find` beneath `scripts/` -- which covers consumers that nest the subtree under `scripts/` at any depth, but still silently no-ops the version stamp for one mounted elsewhere (e.g. `Software/<area>/<tools>/Repokit-Scripts/`). A final fallback now asks git's index (`git ls-files -- '*sync-versions.py'`), which is layout-agnostic by construction and costs no directory walk -- relevant on large work trees, where a recursive `find` can take minutes. Applied to `update-version.sh` resolution as well. Purely additive: it runs only when all existing candidates miss, so consumers on the established layouts resolve exactly as before.
+
+### Changed
+
+- **`hooks/pre-commit` performs each check in a single pass.** The per-file loops spawned one or two processes per staged path -- roughly 1,300 for a 650-file commit, which is slow everywhere and markedly worse under Git Bash on Windows, where it contributed to multi-minute commit times. The private-content check is now one `grep` over the whole list, consulting the allowlist only for paths that actually match; the large-file check batches through `xargs -0 du`. Patterns, thresholds, allowlist semantics, messages and exit codes are unchanged.
+
 ## [0.2.7] - 2026-06-11
 
 Formal release of the nested-subtree-placement fixes: consumers can now mount
