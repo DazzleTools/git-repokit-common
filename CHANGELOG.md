@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Added
+- `docs/community-docs-playbook.md` -- how to install the support/conduct doc stack in a Dazzle repo (issue forms, conduct and support docs, moderation as the enforcement that works; licenses stay clean). Piloted in `DazzleML/comfyui-triton-and-sageattention-installer`; written 2026-08-11 and committed now.
+
+### Fixed
+- `generate-backlinks.py` skips any `_links/` directory inside the vault. `_links/` is the convention for navigation junctions to sibling vaults; `Path.rglob` follows junctions on Windows, so without the skip a sibling's notes were indexed as phantom local notes, and a cycle of junctions never terminated.
+
 ## [0.2.9] - 2026-08-13
 
 ### Added
