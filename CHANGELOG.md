@@ -8,11 +8,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
-### Added
-- `docs/community-docs-playbook.md` -- how to install the support/conduct doc stack in a Dazzle repo (issue forms, conduct and support docs, moderation as the enforcement that works; licenses stay clean). Piloted in `DazzleML/comfyui-triton-and-sageattention-installer`; written 2026-08-11 and committed now.
+## [0.2.10] - 2026-09-14
 
 ### Fixed
+
+- **`generate-backlinks.py` no longer loses every link in a note that is not UTF-8.** The indexer read each note with `read_text(encoding='utf-8', errors='ignore')`. That call never raises, so it looked safe — but a UTF-16 document decodes that way into `#\x00 \x00T\x00i…`, and every `[[wikilink]]` in it silently fails to match. The note reported zero links and dropped out of the graph with no error, no warning, and nothing in the output to suggest anything had gone wrong. Encoding is now detected from the byte-order mark, with a fallback for notes that have none, and **any note that is not plain UTF-8 is reported by name** so it can be converted.
+
+  Two documents in one consuming project's vault had been invisible this way. Because the script is used across the ecosystem, any vault holding a note saved as UTF-16 — the default for PowerShell redirection and for Notepad's "Save as Unicode" — had the same hole and no way to notice it.
+
+  The fallback chooses between wide and single-byte encodings by looking for a NUL byte rather than trying each in turn. Python's UTF-16 decoder accepts *any* even-length input when there is no byte-order mark, so attempting it first would turn an ordinary Windows-1252 note into wide-character garbage and destroy its links — the same silent wrong decode, one level further down.
+
+- **`--validate` explains why it skipped instead of failing with an unrelated error.** `obsidiantools` decodes every note as UTF-8 unconditionally and, on a note it cannot read, fails inside itself with an error naming one of its own local variables, which tells the reader nothing about the cause. Validation now checks for unreadable notes first and says which ones they are, and any other failure inside the library is reported without taking down the run. The backlinks index itself is unaffected either way.
+
 - `generate-backlinks.py` skips any `_links/` directory inside the vault. `_links/` is the convention for navigation junctions to sibling vaults; `Path.rglob` follows junctions on Windows, so without the skip a sibling's notes were indexed as phantom local notes, and a cycle of junctions never terminated.
+
+### Added
+
+- **`tests/test_generate_backlinks.py`** — the first automated tests for this script, twelve of them: UTF-16 in both byte orders, UTF-32, Windows-1252 with no byte-order mark, UTF-8 *with* a byte-order mark (which must not be reported as a problem), a file no codec can read, the skip-with-a-reason path in `--validate`, and the whole thing end to end through the command line. Each encoding test asserts that the link edge exists rather than that the read succeeded — reading was never what failed. Nine of the twelve fail if the fix is removed.
+
+- `docs/community-docs-playbook.md` -- how to install the support/conduct doc stack in a Dazzle repo (issue forms, conduct and support docs, moderation as the enforcement that works; licenses stay clean). Piloted in `DazzleML/comfyui-triton-and-sageattention-installer`; written 2026-08-11 and committed now.
 
 ## [0.2.9] - 2026-08-13
 
@@ -187,7 +201,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.5...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.10...HEAD
+[0.2.10]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.9...v0.2.10
 [0.2.5]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.4...v0.2.5
 [0.2.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.2...v0.2.3

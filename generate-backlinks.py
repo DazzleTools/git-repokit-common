@@ -34,6 +34,96 @@ WIKILINK_RE = re.compile(r'(?<!!)\[\[([^\]|]+?)(?:\|[^\]]+?)?\]\]')
 # Fenced code block delimiters (``` or ~~~, with optional language tag)
 FENCE_RE = re.compile(r'^(`{3,}|~{3,})')
 
+# Byte-order marks for the encodings a vault realistically contains. Documents
+# pasted out of Windows tools (PowerShell redirection, Notepad "Save as
+# Unicode", some chat exports) land as UTF-16 with a BOM.
+_BOMS = (
+    (b'\xff\xfe\x00\x00', 'utf-32'),
+    (b'\x00\x00\xfe\xff', 'utf-32'),
+    (b'\xff\xfe', 'utf-16'),
+    (b'\xfe\xff', 'utf-16'),
+    (b'\xef\xbb\xbf', 'utf-8-sig'),
+)
+
+# Files that could not be decoded as text at all, reported once at the end.
+_undecodable: list[Path] = []
+# Files that decoded, but not as UTF-8. Their links ARE parsed; the vault owner
+# is told so they can normalize (obsidiantools cannot read them -- see
+# validate_against_obsidiantools).
+_non_utf8: list[tuple[Path, str]] = []
+
+
+def read_note_text(fpath: Path) -> str:
+    """
+    Read a note as text, honouring its byte-order mark.
+
+    Previously this was ``read_text(encoding='utf-8', errors='ignore')``, which
+    never raised and therefore looked safe -- but a UTF-16 document decoded that
+    way becomes ``#\\x00 \\x00T\\x00i\\x00...``, so every ``[[wikilink]]`` in it
+    silently fails to match and the note appears to have no links at all. A
+    wrong graph with no error is worse than a crash, so encoding is now
+    detected rather than assumed.
+    """
+    raw = fpath.read_bytes()
+
+    for bom, encoding in _BOMS:
+        if raw.startswith(bom):
+            try:
+                text = raw.decode(encoding)
+                if encoding != 'utf-8-sig':
+                    _non_utf8.append((fpath, encoding))
+                return text
+            except UnicodeDecodeError:
+                break
+
+    try:
+        return raw.decode('utf-8')
+    except UnicodeDecodeError:
+        pass
+
+    # No BOM and not valid UTF-8. Which family to try is decided by a NUL byte
+    # rather than by trying each in turn: NUL is not a text character in any
+    # single-byte codec, but a wide encoding emits one per ASCII character.
+    #
+    # The order matters more than it looks. Python's utf-16 codec accepts ANY
+    # even-length byte string when there is no BOM (it assumes little-endian),
+    # so trying it first turns a 24-byte cp1252 note into 12 characters of wide
+    # garbage -- a silent wrong decode, which is the exact failure this function
+    # exists to prevent, reintroduced one branch further down.
+    candidates = ('utf-16', 'utf-32') if b'\x00' in raw else ('cp1252', 'latin-1')
+
+    for encoding in candidates:
+        try:
+            text = raw.decode(encoding)
+        except (UnicodeDecodeError, UnicodeError):
+            continue
+        _non_utf8.append((fpath, encoding))
+        return text
+
+    _undecodable.append(fpath)
+    return ''
+
+
+def report_encoding_issues() -> None:
+    """Tell the vault owner about anything that was not plain UTF-8."""
+    if _non_utf8:
+        print(
+            f'\nNote: {len(_non_utf8)} file(s) are not UTF-8. Their wikilinks WERE '
+            'parsed, but obsidiantools cannot read them, so --validate will skip '
+            'cross-validation. Convert them to UTF-8 to silence this:',
+            file=sys.stderr,
+        )
+        for fpath, encoding in _non_utf8:
+            print(f'  {fpath}  ({encoding})', file=sys.stderr)
+    if _undecodable:
+        print(
+            f'\nWarning: {len(_undecodable)} file(s) could not be decoded as text '
+            'and were skipped entirely:',
+            file=sys.stderr,
+        )
+        for fpath in _undecodable:
+            print(f'  {fpath}', file=sys.stderr)
+
 
 def find_vault_root(start: Path) -> Path | None:
     """Walk upward from start looking for private/claude/ or _maps/."""
@@ -123,7 +213,7 @@ def build_indices(vault_root: Path) -> tuple[dict, dict, dict]:
 
     forward: dict[str, list[str]] = {}
     for stem, fpath in file_index.items():
-        text = fpath.read_text(encoding='utf-8', errors='ignore')
+        text = read_note_text(fpath)
         raw_targets = parse_wikilinks(text)
         # Resolve each target to a stem (or keep raw for broken-link detection)
         resolved = []
@@ -219,8 +309,37 @@ def validate_against_obsidiantools(vault_root: Path, our_backlinks: dict):
               'Install with: pip install obsidiantools', file=sys.stderr)
         return
 
+    # obsidiantools opens every note as UTF-8 unconditionally. On a
+    # UnicodeDecodeError its _get_md_front_matter_and_content never binds
+    # `file_string` and raises UnboundLocalError from inside the library --
+    # an error that says nothing about the actual cause. Check first and
+    # report the real reason.
+    if _non_utf8:
+        print(
+            'Skipping obsidiantools cross-validation: the vault contains '
+            f'{len(_non_utf8)} non-UTF-8 file(s), which the library cannot read. '
+            'Convert them to UTF-8 to enable validation (see the note above).',
+            file=sys.stderr,
+        )
+        return
+
     print('Running obsidiantools for cross-validation...')
-    vault = otools.Vault(vault_root).connect()
+    try:
+        vault = otools.Vault(vault_root).connect()
+    except UnboundLocalError:
+        # The signature of the same bug, for a file whose encoding slipped past
+        # the check above (no BOM, and coincidentally valid in a fallback).
+        print(
+            'obsidiantools failed to read a file in this vault (it decodes every '
+            'note as UTF-8). Cross-validation skipped; the backlinks index above '
+            'is still correct.',
+            file=sys.stderr,
+        )
+        return
+    except Exception as exc:  # noqa: BLE001 - validation must never be fatal
+        print(f'obsidiantools cross-validation failed ({type(exc).__name__}: {exc}). '
+              'The backlinks index above is still correct.', file=sys.stderr)
+        return
     ot_backlinks = vault.backlinks_index
 
     # Normalize both to sets for comparison
@@ -410,6 +529,8 @@ def main():
     total_bl = sum(len(v) for v in backlinks.values())
     print(f'Wrote {out_path}')
     print(f'  {len(file_index)} files scanned, {with_bl} notes with backlinks, {total_bl} link edges')
+
+    report_encoding_issues()
 
     if run_validation:
         print()
