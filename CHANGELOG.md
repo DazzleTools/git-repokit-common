@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.2.11] - 2026-09-25
+
+### Fixed
+
+- **`sync-versions.py` now says why it fell back to placeholder defaults when it cannot read `pyproject.toml`.** When a `pyproject.toml` was found but no TOML parser could be imported (Python older than 3.11 without the `tomli` package), the config loader returned the placeholder defaults without a word, and the user met the problem much later as `Cannot find $PACKAGE_NAME/_version.py. Run from project root.` -- an error that names an unexpanded placeholder and points at the wrong cause. The loader now prints one warning to stderr at the moment it happens, naming the file it found and the two remedies (Python 3.11+ or `pip install tomli`), and then continues with the defaults exactly as before. A project with no `pyproject.toml` stays silent, and a readable one is unaffected.
+
+  Ten regression tests pin it (`tests/test_sync_versions.py`): four fail without the warning and six fence the behaviour around it, including that a config-less project does not start warning. The tests were written from a one-sentence description of the bug by an agent that never saw the fix.
+
 ## [0.2.10] - 2026-09-14
 
 ### Fixed
