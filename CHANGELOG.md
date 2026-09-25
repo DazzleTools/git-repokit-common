@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+### Changed
+
+- **`tests/test_sync_versions.py` consolidated from ten tests to seven, with no loss of detection.** Four of the ten checked facets of the one warning line -- that it exists, names the path, names both remedies, is one line -- with the same setup and the same call. They are now one test with four assertions. A mutation sweep of 17 deliberate bugs confirms the seven tests catch every one the ten did. Each test now opens its docstring with a consequence score from 1 (superficial) to 10 (never remove), and the file is ordered by score, so the one test that pins wording in another function sits last under a "superficial" divider. 133 lines, down from 213. The consolidation was proposed by a new cleanup instrument run cold on the original file; an earlier hand trim to four tests had dropped three of the facets and kept the one that the others fully covered, losing the wording detection this version keeps.
+
 ## [0.2.11] - 2026-09-25
 
 ### Fixed
