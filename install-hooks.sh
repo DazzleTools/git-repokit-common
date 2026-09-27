@@ -42,24 +42,31 @@ if [ -f "$HOOKS_DIR/pre-commit" ]; then
     fi
 fi
 
-# Install pre-commit hook
-echo -e "${GREEN}Installing pre-commit hook...${NC}"
-cp "$SCRIPT_DIR/hooks/pre-commit" "$HOOKS_DIR/pre-commit"
-chmod +x "$HOOKS_DIR/pre-commit"
+# Each hook that would be replaced by a different one is first saved as
+# <hook>.backup-<timestamp> beside it, so a project's own hook (or local edits
+# to an installed one) can be recovered. One timestamp per run keeps a run's
+# backups together; an identical hook is left alone and not backed up.
+BACKUP_STAMP="$(date +%Y%m%d-%H%M%S)"
+install_hook() {
+    _src="$SCRIPT_DIR/hooks/$1"
+    _dst="$HOOKS_DIR/$1"
+    [ -f "$_src" ] || return 0
+    if [ -f "$_dst" ]; then
+        if cmp -s "$_src" "$_dst"; then
+            echo -e "${GREEN}$1 hook already up to date${NC}"
+            return 0
+        fi
+        cp -p "$_dst" "$_dst.backup-$BACKUP_STAMP"
+        echo -e "${YELLOW}Note:${NC} existing $1 hook saved as $1.backup-$BACKUP_STAMP"
+    fi
+    echo -e "${GREEN}Installing $1 hook...${NC}"
+    cp "$_src" "$_dst"
+    chmod +x "$_dst"
+}
 
-# Install post-commit hook
-if [ -f "$SCRIPT_DIR/hooks/post-commit" ]; then
-    echo -e "${GREEN}Installing post-commit hook...${NC}"
-    cp "$SCRIPT_DIR/hooks/post-commit" "$HOOKS_DIR/post-commit"
-    chmod +x "$HOOKS_DIR/post-commit"
-fi
-
-# Install pre-push hook
-if [ -f "$SCRIPT_DIR/hooks/pre-push" ]; then
-    echo -e "${GREEN}Installing pre-push hook...${NC}"
-    cp "$SCRIPT_DIR/hooks/pre-push" "$HOOKS_DIR/pre-push"
-    chmod +x "$HOOKS_DIR/pre-push"
-fi
+install_hook pre-commit
+install_hook post-commit
+install_hook pre-push
 
 # Make sync-versions.py accessible (no chmod needed for Python)
 if [ -f "$SCRIPT_DIR/sync-versions.py" ]; then

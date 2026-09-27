@@ -1,7 +1,11 @@
 #!/bin/sh
 # Pre-commit hook that:
 # 1. Updates version.py with correct version info
-# 2. Prevents committing private content to public branches
+# 2. Prevents committing private content to public branches: a built-in list,
+#    plus the project's own `private-patterns` (literal path prefixes from the
+#    repository root) under [tool.repokit-common] in pyproject.toml or
+#    .repokit-common.toml; paths in .repokit-allowlist are exempt from both
+# 3. Blocks files over 10 MB
 
 # Get current branch name
 current_branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "unknown")
@@ -124,13 +128,54 @@ if [ -z "$GIT_DIR_ABS" ] || ! git diff --cached --name-only -z --diff-filter=ACM
     exit 1
 fi
 
+# Project patterns (#13): `private-patterns` in [tool.repokit-common] (the
+# project's pyproject.toml, or .repokit-common.toml at the root), read through
+# the vendored repokit_config.py, located the way the sync script is above.
+# Each entry is a LITERAL path prefix from the repository root -- "private/"
+# blocks private/..., ".env" blocks .env and .env.local -- never a regular
+# expression, and it is ADDED to the built-in list below, never replacing it.
+# (Read as unanchored regular expressions, dazzlecmd's nine entries would have
+# newly blocked 20 of its tracked files; as prefixes, none.)
+# A config file that exists but cannot be read blocks the commit: silently
+# dropping the project's patterns would let exactly those files through.
+CONFIG_TOOL=""
+for _cand in "$REPO_ROOT/scripts/repokit-common/repokit_config.py" "$REPO_ROOT/scripts/repokit_config.py" "$REPO_ROOT/repokit_config.py"; do
+    [ -f "$_cand" ] && { CONFIG_TOOL="$_cand"; break; }
+done
+if [ -z "$CONFIG_TOOL" ]; then
+    _rel="$(git ls-files -- ':(glob)**/repokit_config.py' 2>/dev/null | head -n1)"
+    [ -n "$_rel" ] && [ -f "$REPO_ROOT/$_rel" ] && CONFIG_TOOL="$REPO_ROOT/$_rel"
+fi
+PATTERNS_FILE="$GIT_DIR_ABS/.repokit-patterns.$$"
+trap 'cleanup_staged; rm -f "$PATTERNS_FILE"' EXIT
+: > "$PATTERNS_FILE"
+if [ -n "$CONFIG_TOOL" ] && command -v python >/dev/null 2>&1; then
+    if ! python "$CONFIG_TOOL" --get private-patterns > "$PATTERNS_FILE"; then
+        echo ""
+        echo "❌ COMMIT BLOCKED - the repokit-common settings could not be read"
+        echo "   private-patterns cannot be checked until the [tool.repokit-common]"
+        echo "   table named above is fixed."
+        exit 1
+    fi
+fi
+
 # One grep over the whole list instead of an `echo | grep` per file. On a large
 # commit the per-file form costs thousands of process spawns, which is slow
 # everywhere and painful on Windows. The allowlist is consulted only for paths
 # that actually match, so the common case (no private content) costs one grep.
+# The project's prefixes are matched in one awk pass (a leading "./" or "/" on
+# an entry is ignored: every entry is relative to the repository root).
 has_private_content=0
-private_candidates=$(tr '\0' '\n' < "$STAGED_LIST" |
-    grep -E "^.*/__private__.*|^.*/private_.*|^.*~$|\.backup$|\.bak$|\.log$|\.tmp$|^\.env.*|^\.env\.local$|^\.env\.private$|^convos/|^credentials/|^logs/|^nul$|^private/|^revisions/|^secrets/|^test-runs/|^test_runs/")
+private_candidates=$( {
+    tr '\0' '\n' < "$STAGED_LIST" |
+        grep -E "^.*/__private__.*|^.*/private_.*|^.*~$|\.backup$|\.bak$|\.log$|\.tmp$|^\.env.*|^\.env\.local$|^\.env\.private$|^convos/|^credentials/|^logs/|^nul$|^private/|^revisions/|^secrets/|^test-runs/|^test_runs/"
+    if [ -s "$PATTERNS_FILE" ]; then
+        tr '\0' '\n' < "$STAGED_LIST" | awk '
+            NR == FNR { sub(/\r$/, ""); sub(/^\.\//, ""); sub(/^\/+/, ""); if ($0 != "") p[++n] = $0; next }
+            { for (i = 1; i <= n; i++) if (index($0, p[i]) == 1) { print; next } }
+        ' "$PATTERNS_FILE" -
+    fi
+} | sort -u )
 
 if [ -n "$private_candidates" ]; then
     printf '%s\n' "$private_candidates" | while IFS= read -r file; do
