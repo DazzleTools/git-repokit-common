@@ -91,8 +91,16 @@ def _load_config():
     candidate = _find_config(Path(__file__).resolve().parent)
     if candidate is not None:
         if tomllib:
-            with open(candidate, "rb") as f:
-                data = tomllib.load(f)
+            # A file that exists but cannot be parsed is not an absent one:
+            # falling back to the placeholder defaults would aim at the wrong
+            # files (or fail later on "$PACKAGE_NAME"). Say which file and why,
+            # in one line, and stop -- quiet when all is well, loud when not.
+            try:
+                with open(candidate, "rb") as f:
+                    data = tomllib.load(f)
+            except (tomllib.TOMLDecodeError, OSError) as e:
+                print(f"Error: cannot read {candidate}: {e}", file=sys.stderr)
+                sys.exit(2)
             cfg = data.get("tool", {}).get("repokit-common", {})
             if cfg:
                 tag_format = cfg.get("tag-format", _DEFAULT_TAG_FORMAT)

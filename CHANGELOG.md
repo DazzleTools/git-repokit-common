@@ -8,6 +8,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-09-27
+
+> **For consuming projects:**
+> - **Hooks update themselves.** Re-run `install-hooks.sh` once after pulling this version. It replaces the installed hook copies with small stubs (the old ones are kept as `.backup-` files) that run the hooks from the vendored copy, so every later subtree pull updates them.
+> - **Pushes to experimental branches are no longer blocked.** A test runner that cannot start now blocks only the gated branches, as failing tests always did. In 0.3.0 it blocked every branch.
+> - **The gated branches gain two names.** The default is now `main`, `master`, `staging` and `live`, so a push to `staging` or `live` with failing tests is now blocked. Set `strict-branches` to choose your own.
+> - **Captured output changes.** Hook messages in an IDE's git panel or CI now read `[OK]`, `[!]`, `[X]` instead of emoji and colour codes.
+> - **`sync-versions.py` stops on a broken settings table** (exit 2, one line), instead of a traceback.
+
+### Added
+
+- **The hooks share one library, `hooks/lib.sh`, and install as stubs (#14).** The three hooks carried copies of the same setup code: finding the vendored copy, reading the settings, finding the version tool, and the branch lists. A fix to one had to be copied by hand to the others. That code now lives in `lib.sh`.
+
+  `install-hooks.sh` writes a small stub per hook into `.git/hooks`. The stub finds the checkout's own vendored copy and runs the hook from there, so hooks update with every subtree pull and never go stale between installs. It looks first where the installer ran from, recorded relative to the root so each worktree uses its own copy. Then it tries the usual layouts and git's index, so an untracked copy at a custom path is found too. A branch whose tree has no vendored copy cannot run the checks, and it is never passed silently: a gated branch is blocked, and any other branch gets a warning. `REPOKIT_STRICT_BRANCHES= git ...` loosens that for one run.
+
+  `core.hooksPath` was measured and rejected as the way to share the code: on a branch without the subtree, git runs no hook at all and the commit goes through silently. The installer now warns when `core.hooksPath` is set, since git would then ignore the stubs.
+- **`strict-branches`:** the gated branches, as shell glob patterns. By default `main`, `master`, `staging` and `live`, from git-repokit's branch model. Failing tests, or a test runner that cannot start, block a push to them and warn elsewhere.
+- **`output`:** `auto`, `plain` or `rich`. Plain `[OK]`/`[!]`/`[X]` markers when the hook's output is not a terminal, and symbols with colour when it is. `REPOKIT_OUTPUT` overrides it for one run. The astral emoji that some consoles cannot draw are gone.
+- **`.gitattributes`** keeps the hooks and shell scripts at LF line endings in every checkout, vendored copies included.
+
+### Fixed
+
+- **A test runner that cannot start blocked pushes to every branch** (0.3.0). It now follows the gated-branch rule, with its own message and pytest's error in both cases.
+- **The first commit on a new branch was read as branch `HEAD`,** so a new branch named `private` was treated as public. Branch names now come from `git symbolic-ref` first.
+- **`sync-versions.py` crashed with a traceback on an unparseable `[tool.repokit-common]` table.** It now prints one line naming the file and the reason, and exits 2 rather than falling back to placeholder paths. A missing TOML parser still warns and falls back, as before.
+- **post-commit reported "Version updated" even when the update failed.** It now shows the tool's own error.
+- **The `print()` count scanned the vendored repokit-common copy and `tests/`** when no package directory was found. A fresh consumer saw "257 in ./", nearly all of them repokit-common's own.
+- **A push that git had already rejected was reported as "Tag-only push".** git passes the hook an empty ref list in that case. It now says there is nothing to push.
+
+### Tests
+
+- `tests/test_install_hooks.py`: a fresh consumer with repokit-common at `scripts/repokit-common/`, installed with the vendored installer, then committing and pushing through the stubs. It also covers a worktree, a missing copy on gated and ungated branches, the one-run override, the stamped branch list, arguments passed through, patterns that must not glob-expand, and the version tool beside the copy.
+- More pre-push tests for the gated branches and the output modes, a pre-commit test for each private branch name, and a sync-versions test for the broken table. The suite has 145 tests. Unit 1's red-green and mutation results are in `tests/mutation/v0.3.1__sweep__stubs-and-lib.md`. The later units were tested in proportion to their risk rather than with the full battery, following a review of how much the full battery was catching.
+
 ## [0.3.0] - 2026-09-27
 
 > **For consuming projects: a push may now run more tests, and may now be blocked where it was not before.** After pulling this version and re-running `install-hooks.sh`:
@@ -260,7 +294,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.13...v0.3.0
 [0.2.13]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.12...v0.2.13
 [0.2.12]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.11...v0.2.12

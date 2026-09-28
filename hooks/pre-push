@@ -33,15 +33,26 @@
 # not run.
 #
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Shared code (finding the vendored copy and the settings; the branch lists)
+# lives in lib.sh beside this hook. Sourced before the cd: $0 may be relative.
+_rk_lib="$(dirname "$0")/lib.sh"
+if [ ! -f "$_rk_lib" ]; then
+    echo "repokit-common: $(basename "$0") cannot run -- lib.sh is not beside it in $(dirname "$0")." >&2
+    echo "  Re-run install-hooks.sh from the vendored repokit-common copy." >&2
+    exit 1
+fi
+. "$_rk_lib"
+rk_locate
 
 # Change to repository root
-cd "$(git rev-parse --show-toplevel)" 2>/dev/null || true
+cd "$REPO_ROOT" 2>/dev/null || true
+
+# Settings first (one call through lib.sh), because they choose the output
+# style every message below uses. A failure is reported further down, at the
+# point the push is validated.
+_rk_settings_ok=true
+rk_read_settings test-command print-warning strict-branches output || _rk_settings_ok=false
+rk_setup_output
 
 # =============================================================================
 # CAPTURE PUSHED REFS (read stdin once, iterate multiple times below)
@@ -79,6 +90,14 @@ if [ -n "$REFS_DATA" ] && [ -n "$PROTECTED_BRANCH_RE" ]; then
             fi
         done
     done <<< "$REFS_DATA"
+fi
+
+# No refs at all: git calls the hook with an empty list when it has already
+# rejected every ref (a non-fast-forward push). Nothing will be pushed, so
+# there is nothing to check -- say that, rather than calling it a tag push.
+if [ -z "$(printf '%s' "$REFS_DATA" | tr -d '[:space:]')" ]; then
+    echo -e "${GREEN}Nothing to push -- skipping validation${NC}"
+    exit 0
 fi
 
 # Skip validation for tag-only pushes (no code changed, no need to retest)
@@ -125,46 +144,24 @@ if [ -z "$PACKAGE_DIR" ]; then
 fi
 
 # =============================================================================
-# PROJECT SETTINGS
-# The hook runs from .git/hooks, so it finds the vendored repokit_config.py the
-# way pre-commit finds sync-versions.py: the usual layouts first, then git's
-# index (layout-agnostic, no directory walk). One call returns every key.
-# A config file that exists but cannot be read stops the push rather than
-# silently falling back to defaults.
+# PROJECT SETTINGS (read at the top). A settings file that exists but cannot
+# be read stops the push rather than silently falling back to defaults.
+# VENDORED_DIR (from rk_locate) is the vendored copy's folder relative to the
+# root, empty when repokit-common is the project.
 # =============================================================================
-REPO_ROOT="$(pwd)"
-CONFIG_TOOL=""
-for _cand in "$REPO_ROOT/scripts/repokit-common/repokit_config.py" "$REPO_ROOT/scripts/repokit_config.py" "$REPO_ROOT/repokit_config.py"; do
-    [ -f "$_cand" ] && { CONFIG_TOOL="$_cand"; break; }
-done
-if [ -z "$CONFIG_TOOL" ]; then
-    _rel="$(git ls-files -- ':(glob)**/repokit_config.py' 2>/dev/null | head -n1)"
-    [ -n "$_rel" ] && [ -f "$REPO_ROOT/$_rel" ] && CONFIG_TOOL="$REPO_ROOT/$_rel"
+if ! $_rk_settings_ok; then
+    echo -e "${RED}${RK_FAIL} BLOCKED: the repokit-common settings could not be read${NC}"
+    echo "  Fix the [tool.repokit-common] table named above, then push again"
+    exit 1
 fi
 
-REPOKIT_TEST_COMMAND=""
-REPOKIT_PRINT_WARNING=""
-# The vendored copy's directory, relative to the root; empty when repokit-common
-# is the project itself (its tool sits at the root).
-VENDORED_DIR=""
-if [ -n "$CONFIG_TOOL" ]; then
-    _settings="$(python "$CONFIG_TOOL" --shell test-command print-warning)" || {
-        echo -e "${RED}❌ BLOCKED: the repokit-common settings could not be read${NC}"
-        echo "  Fix the [tool.repokit-common] table named above, then push again"
-        exit 1
-    }
-    eval "$_settings"
-    _dir="$(dirname "$CONFIG_TOOL")"
-    [ "$_dir" != "$REPO_ROOT" ] && VENDORED_DIR="${_dir#$REPO_ROOT/}"
-fi
-
-# Get current branch
-CURRENT_BRANCH=$(git branch --show-current)
-ON_MAIN=false
-if [[ "$CURRENT_BRANCH" == "main" ]] || [[ "$CURRENT_BRANCH" == "master" ]]; then
-    ON_MAIN=true
-fi
-echo -e "${BLUE}🔍 Pre-push validation for branch: $CURRENT_BRANCH${NC}"
+# The gated branches (strict-branches; git-repokit's main, master, staging and
+# live by default) are held to the tests; any other branch is warned, not
+# stopped, so experimental work can still be pushed. CURRENT_BRANCH comes from
+# rk_locate.
+GATED=false
+rk_is_strict_branch "$CURRENT_BRANCH" && GATED=true
+echo -e "${BLUE}${RK_INFO} Pre-push validation for branch: $CURRENT_BRANCH${NC}"
 echo ""
 
 # =============================================================================
@@ -181,33 +178,33 @@ if [ "$PACKAGE_DIR" != "." ]; then
     _root_out="$(python -m compileall -q -l . 2>&1)" || { _syntax_failed=true; _syntax_out="$_syntax_out$_root_out"; }
 fi
 if [ "$_syntax_failed" = true ]; then
-    echo -e "${RED}❌ Python syntax errors found${NC}"
+    echo -e "${RED}${RK_FAIL} Python syntax errors found${NC}"
     echo "$_syntax_out"
     echo "Fix syntax errors before pushing"
     exit 1
 fi
-echo -e "${GREEN}✓${NC} Python syntax check passed"
+echo -e "${GREEN}${RK_OK}${NC} Python syntax check passed"
 
 # =============================================================================
 # RUN TESTS
 # The gate reports what actually happened. pytest's exit codes: 0 passed,
 # 1 tests failed, 5 no tests collected, 2/3/4 interrupted, internal error or
 # usage error -- the runner could not run, which is never reported as failing
-# tests. Failing tests block main/master; a runner that cannot run blocks any
-# branch, because it would otherwise pass nothing silently.
+# tests. Both block a gated branch and warn on any other, each with its own
+# message and the output that explains it.
 # =============================================================================
 echo ""
 echo -e "${BLUE}Running tests...${NC}"
 
 _tests_failing() {
     # $1: what failed, $2: output to show
-    echo -e "${YELLOW}⚠${NC} $1"
+    echo -e "${YELLOW}${RK_WARN}${NC} $1"
     [ -n "$2" ] && echo "$2" | tail -n 60
-    if $ON_MAIN; then
-        echo -e "${RED}❌ BLOCKED: Cannot push to $CURRENT_BRANCH with failing tests${NC}"
+    if $GATED; then
+        echo -e "${RED}${RK_FAIL} BLOCKED: Cannot push to $CURRENT_BRANCH with failing tests${NC}"
         exit 1
     fi
-    echo "  Consider fixing tests before pushing"
+    echo "  Consider fixing tests before pushing ($CURRENT_BRANCH is not a gated branch)"
 }
 
 if [ -n "$REPOKIT_TEST_COMMAND" ]; then
@@ -216,7 +213,7 @@ if [ -n "$REPOKIT_TEST_COMMAND" ]; then
     _out="$(sh -c "$REPOKIT_TEST_COMMAND" 2>&1)"
     _rc=$?
     if [ $_rc -eq 0 ]; then
-        echo -e "${GREEN}✓${NC} test-command passed"
+        echo -e "${GREEN}${RK_OK}${NC} test-command passed"
     else
         _tests_failing "test-command failed (exit $_rc)" "$_out"
     fi
@@ -250,7 +247,7 @@ else
     fi
 
     if ! $DECLARED && [ -z "$(find tests/ -name 'test_*.py' -type f -not -path '*/one-offs/*' -not -path '*/thinking/*' 2>/dev/null | head -1)" ]; then
-        echo -e "${YELLOW}⚠${NC} No test files found (tests/test_*.py) -- skipping"
+        echo -e "${YELLOW}${RK_WARN}${NC} No test files found (tests/test_*.py) -- skipping"
     else
         _out="$("${PYTEST[@]}" -q "${SCOPE[@]}" 2>&1)"
         _rc=$?
@@ -258,19 +255,23 @@ else
         _summary="$(echo "$_out" | grep -E '(passed|failed|error|no tests ran|skipped|deselected)' | tail -n1 | sed -E 's/^=+ //; s/ =+$//')"
         case $_rc in
             0)
-                echo -e "${GREEN}✓${NC} All tests passed: $_summary"
+                echo -e "${GREEN}${RK_OK}${NC} All tests passed: $_summary"
                 ;;
             1)
                 _tests_failing "Some tests failed: $_summary" "$_out"
                 ;;
             5)
-                echo -e "${YELLOW}⚠${NC} No tests collected -- skipping"
+                echo -e "${YELLOW}${RK_WARN}${NC} No tests collected -- skipping"
                 ;;
             *)
-                echo -e "${RED}❌ BLOCKED: the test runner could not run (pytest exit $_rc)${NC}"
+                echo -e "${YELLOW}${RK_WARN}${NC} The test runner could not run (pytest exit $_rc)"
                 echo "$_out" | tail -n 60
                 echo "  This is not a test failure: pytest did not get as far as running tests."
-                exit 1
+                if $GATED; then
+                    echo -e "${RED}${RK_FAIL} BLOCKED: Cannot push to $CURRENT_BRANCH until the tests can run${NC}"
+                    exit 1
+                fi
+                echo "  Fix the test setup before merging ($CURRENT_BRANCH is not a gated branch)"
                 ;;
         esac
     fi
@@ -284,7 +285,7 @@ echo -e "${BLUE}Checking for debug statements...${NC}"
 
 # Check for pdb statements
 if grep -r "import pdb\|pdb\.set_trace()" $PACKAGE_DIR/ --include="*.py" 2>/dev/null; then
-    echo -e "${RED}❌ ERROR: Debugger statements found${NC}"
+    echo -e "${RED}${RK_FAIL} ERROR: Debugger statements found${NC}"
     echo "Remove all pdb statements before pushing"
     exit 1
 fi
@@ -292,19 +293,24 @@ fi
 # Check for excessive print statements (warning only; print-warning = false
 # turns it off for projects whose output is print() by design, such as CLIs)
 if [ "$REPOKIT_PRINT_WARNING" != "false" ]; then
-    print_count=$(grep -r "print(" $PACKAGE_DIR/ --include="*.py" 2>/dev/null | grep -v "#.*print(" | wc -l)
+    # The project's own code only: never tests, and never the vendored
+    # repokit-common copy (a fresh consumer with no package directory once saw
+    # "257 in ./", almost all of them repokit-common's own).
+    _rk_excl=(--exclude-dir=tests --exclude-dir=.git)
+    [ -n "$VENDORED_DIR" ] && _rk_excl+=(--exclude-dir="$(basename "$VENDORED_DIR")")
+    print_count=$(grep -r "print(" "$PACKAGE_DIR/" --include="*.py" "${_rk_excl[@]}" 2>/dev/null | grep -v "#.*print(" | wc -l)
     if [ "$print_count" -gt 20 ]; then
-        echo -e "${YELLOW}⚠${NC} Warning: Many print() statements found ($print_count in $PACKAGE_DIR/)"
+        echo -e "${YELLOW}${RK_WARN}${NC} Warning: Many print() statements found ($print_count in $PACKAGE_DIR/)"
         echo "  Consider using logging instead, or set print-warning = false"
     fi
 fi
 
-echo -e "${GREEN}✓${NC} No debugger statements found"
+echo -e "${GREEN}${RK_OK}${NC} No debugger statements found"
 
 # =============================================================================
 # FINAL STATUS
 # =============================================================================
 echo ""
-echo -e "${GREEN}✅ Pre-push validation complete${NC}"
+echo -e "${GREEN}${RK_OK} Pre-push validation complete${NC}"
 echo "Ready to push to $CURRENT_BRANCH"
 exit 0

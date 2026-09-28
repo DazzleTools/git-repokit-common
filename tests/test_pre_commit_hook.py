@@ -50,6 +50,7 @@ def repo(tmp_path):
     hooks = root / ".git" / "hooks"
     hooks.mkdir(exist_ok=True)
     shutil.copy(HOOK, hooks / "pre-commit")
+    shutil.copy(HOOK.parent / "lib.sh", hooks / "lib.sh")  # the hook sources it from beside itself
     (hooks / "pre-commit").chmod(0o755)
     (root / "README.md").write_text("seed\n")
     _git(root, "add", "README.md")
@@ -282,6 +283,24 @@ def test_a_private_branch_ignores_the_project_patterns(repo):
     _configure(root, ["drafts/"])
     result = _commit(root, hooks, "drafts/idea.md")
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("branch", ["local", "private", "feature/x", "feat/x", "prototype/x", "experiment/x", "spike/x"])
+def test_every_private_branch_name_allows_private_content(repo, branch):
+    """CONSEQUENCE: 6 (behaviour) -- each documented private branch (or prefix) accepts private files; every other branch is public."""
+    root, hooks = repo
+    _git(root, "checkout", "-q", "-b", branch)
+    result = _commit(root, hooks, "private/notes.md")
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def test_the_first_commit_on_a_new_private_branch_is_treated_as_private(repo):
+    """CONSEQUENCE: 5 (behaviour) -- on a branch with no commits yet git's short name lookup answers "HEAD"; the hook still sees the real branch name."""
+    root, hooks = repo
+    _git(root, "checkout", "-q", "--orphan", "private")
+    result = _commit(root, hooks, "private/notes.md")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "Checking for private content on branch: private" in result.stdout + result.stderr
 
 
 def test_ordinary_file_commits_in_a_worktree(worktree):

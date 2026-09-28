@@ -33,7 +33,7 @@ PASSING = "def test_ok():\n    assert True\n"
 FAILING = "def test_bad():\n    assert False, 'deliberate failure'\n"
 
 
-def _git(cwd, *args, hooks_dir=None, check=True):
+def _git(cwd, *args, hooks_dir=None, check=True, env=None):
     cmd = [
         "git",
         "-c", "user.email=hooktest@example.invalid",
@@ -46,7 +46,7 @@ def _git(cwd, *args, hooks_dir=None, check=True):
     cmd += list(args)
     # The hook prints UTF-8 (emoji); decode it as such on every platform.
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", check=check)
+                          encoding="utf-8", errors="replace", check=check, env=env)
 
 
 def _w(path, text):
@@ -67,6 +67,7 @@ def repo(tmp_path):
     hooks = root / ".git" / "hooks"
     hooks.mkdir(exist_ok=True)
     shutil.copy(HOOK, hooks / "pre-push")
+    shutil.copy(HOOK.parent / "lib.sh", hooks / "lib.sh")  # the hook sources it from beside itself
     (hooks / "pre-push").chmod(0o755)
     vendored = root / "scripts" / "repokit-common"
     vendored.mkdir(parents=True)
@@ -75,8 +76,8 @@ def repo(tmp_path):
     return root, hooks, remote
 
 
-def _push(repo, files, branch="main"):
-    """Write ``files`` ({relative path: text}), commit on ``branch``, push it."""
+def _push(repo, files, branch="main", env=None):
+    """Write ``files`` ({relative path: text}), commit on ``branch``, push it (with ``env`` when given)."""
     root, hooks, remote = repo
     current = _git(root, "branch", "--show-current").stdout.strip()
     if branch != current:
@@ -85,7 +86,7 @@ def _push(repo, files, branch="main"):
         _w(root / rel, text)
     _git(root, "add", "-A")
     _git(root, "commit", "-q", "-m", "change", hooks_dir=hooks)
-    r = _git(root, "push", "-q", "origin", branch, hooks_dir=hooks, check=False)
+    r = _git(root, "push", "-q", "origin", branch, hooks_dir=hooks, check=False, env=env)
     landed = _git(remote, "rev-parse", "--verify", "-q", f"refs/heads/{branch}", check=False)
     return r, r.stdout + r.stderr, landed.returncode == 0
 
@@ -99,16 +100,110 @@ def test_failing_tests_block_a_push_to_main_and_show_why(repo):
     assert "1 failed" in out
 
 
-def test_a_runner_that_cannot_start_blocks_and_is_not_called_failing_tests(repo):
-    """CONSEQUENCE: 9 (safety) -- a broken conftest stops the push on any branch, reported as a runner problem with pytest's own error."""
-    r, out, landed = _push(repo, {
-        "tests/conftest.py": "raise RuntimeError('conftest is broken')\n",
-        "tests/test_a.py": PASSING,
-    }, branch="feature")
+BROKEN_CONFTEST = {
+    "tests/conftest.py": "raise RuntimeError('conftest is broken')\n",
+    "tests/test_a.py": PASSING,
+}
+
+
+def test_a_runner_that_cannot_start_blocks_a_gated_branch(repo):
+    """CONSEQUENCE: 9 (safety) -- a broken conftest stops a push to a gated branch (staging), reported as a runner problem with pytest's own error."""
+    r, out, landed = _push(repo, BROKEN_CONFTEST, branch="staging")
     assert r.returncode != 0 and not landed
-    assert "the test runner could not run" in out
+    assert "The test runner could not run" in out
     assert "conftest is broken" in out
     assert "Some tests failed" not in out
+    assert "BLOCKED: Cannot push to staging until the tests can run" in out
+
+
+def test_a_runner_that_cannot_start_warns_on_an_ungated_branch(repo):
+    """CONSEQUENCE: 7 (behaviour) -- off the gated branches the same problem is reported, with pytest's error, and the push goes through (#14)."""
+    r, out, landed = _push(repo, BROKEN_CONFTEST, branch="feature")
+    assert r.returncode == 0 and landed, out
+    assert "The test runner could not run" in out and "conftest is broken" in out
+    assert "feature is not a gated branch" in out
+
+
+def test_strict_branches_setting_replaces_the_default_set(repo):
+    """CONSEQUENCE: 7 (behaviour) -- strict-branches patterns decide the gate: release/* blocks, and main is no longer gated once the setting omits it."""
+    cfg = {".repokit-common.toml": '[tool.repokit-common]\nstrict-branches = ["release/*"]\n'}
+    r, out, landed = _push(repo, {**cfg, "tests/test_a.py": FAILING}, branch="release/1.0")
+    assert r.returncode != 0 and not landed
+    assert "BLOCKED: Cannot push to release/1.0 with failing tests" in out
+    r, out, landed = _push(repo, {}, branch="main")
+    assert r.returncode == 0 and landed, out
+    assert "main is not a gated branch" in out
+
+
+def test_failing_tests_block_live_by_default(repo):
+    """CONSEQUENCE: 8 (safety) -- live (git-repokit's production branch) is in the default gated set."""
+    r, out, landed = _push(repo, {"tests/test_a.py": FAILING}, branch="live")
+    assert r.returncode != 0 and not landed
+    assert "BLOCKED: Cannot push to live with failing tests" in out
+
+
+def test_the_print_count_ignores_the_vendored_copy_and_tests(repo):
+    """CONSEQUENCE: 4 (behaviour) -- with no package directory, prints in the vendored repokit-common copy and in tests/ are not counted."""
+    noisy = "".join(f"print({i})\n" for i in range(25))
+    r, out, landed = _push(repo, {"scripts/repokit-common/noisy.py": noisy,
+                                  "tests/test_a.py": PASSING + noisy.replace("print", "    print").join(["def helper():\n", ""])})
+    assert r.returncode == 0 and landed, out
+    assert "print() statements" not in out
+
+
+def test_a_push_git_rejected_says_nothing_to_push(repo):
+    """CONSEQUENCE: 3 (behaviour) -- when git passes no refs (it rejected them all), the hook says so instead of calling it a tag-only push."""
+    root, hooks, remote = repo
+    _push(repo, {"tests/test_a.py": PASSING})
+    _w(root / "other.txt", "x\n")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "ahead", hooks_dir=hooks)
+    _git(root, "push", "-q", "origin", "main", hooks_dir=hooks)
+    _git(root, "reset", "-q", "--hard", "HEAD~1")  # this tmp_path repository only
+    _w(root / "diverged.txt", "x\n")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "diverged", hooks_dir=hooks)
+    r = _git(root, "push", "origin", "main", hooks_dir=hooks, check=False)  # non-fast-forward
+    out = r.stdout + r.stderr
+    assert r.returncode != 0
+    assert "Tag-only" not in out
+    assert "Nothing to push" in out
+
+
+def test_captured_output_is_plain_text(repo):
+    """CONSEQUENCE: 5 (behaviour) -- output that is not a terminal (IDE panels, CI, tools) uses [OK]/[X] markers and no escape codes."""
+    r, out, landed = _push(repo, {"tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "[OK] All tests passed" in out
+    assert "\x1b" not in out and "✓" not in out
+
+
+def test_output_rich_setting_forces_symbols_and_colour(repo):
+    """CONSEQUENCE: 4 (behaviour) -- output = "rich" gives the symbols and colour even when captured."""
+    r, out, landed = _push(repo, {".repokit-common.toml": '[tool.repokit-common]\noutput = "rich"\n',
+                                  "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "✓" in out and "\x1b[" in out
+
+
+def test_the_environment_beats_the_output_setting(repo):
+    """CONSEQUENCE: 4 (behaviour) -- REPOKIT_OUTPUT=plain wins over output = "rich" for one run."""
+    env = dict(os.environ, REPOKIT_OUTPUT="plain")
+    r, out, landed = _push(repo, {".repokit-common.toml": '[tool.repokit-common]\noutput = "rich"\n',
+                                  "tests/test_a.py": PASSING}, env=env)
+    assert r.returncode == 0 and landed, out
+    assert "[OK] All tests passed" in out and "\x1b" not in out
+
+
+def test_an_empty_strict_branches_override_ungates_one_push(repo):
+    """CONSEQUENCE: 6 (behaviour) -- REPOKIT_STRICT_BRANCHES= loosens the gate for one run, even though the default would block main."""
+    # An explicit environment: on Windows, setting a variable to "" inside this
+    # Python process deletes it, while a child's environment block keeps it --
+    # which is what `REPOKIT_STRICT_BRANCHES= git push` from a shell does.
+    env = dict(os.environ, REPOKIT_STRICT_BRANCHES="")
+    r, out, landed = _push(repo, {"tests/test_a.py": FAILING}, branch="main", env=env)
+    assert r.returncode == 0 and landed, out
+    assert "main is not a gated branch" in out
 
 
 @pytest.mark.skipif(sys.version_info < (3, 11), reason="python -P needs 3.11+")

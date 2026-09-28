@@ -32,7 +32,7 @@ Note: If you already have files in `scripts/`, move them out first, do the subtr
   `private-patterns` entries are literal path prefixes from the repository root (not regular expressions), added to the pre-commit hook's built-in list.
 - [ ] **Check the pre-push test step**: with no settings it runs pytest over your declared `testpaths`, or over `tests/` without `one-offs/` and `thinking/`. If your tests are scripts rather than pytest, or live elsewhere, set `test-command` (or declare `testpaths`)
 - [ ] **Create `_version.py`**: Copy the version module template into your package directory and edit the initial version values
-- [ ] **Install hooks**: Run `bash scripts/install-hooks.sh`
+- [ ] **Install hooks**: run `bash scripts/repokit-common/install-hooks.sh` (or `scripts/install-hooks.sh` in a flat layout). It writes small stubs that run the vendored hooks, so later subtree pulls update the hooks without re-installing. Re-run it only after changing `strict-branches`.
 
 ## Customize (as needed)
 
