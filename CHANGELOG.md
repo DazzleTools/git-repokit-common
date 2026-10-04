@@ -8,6 +8,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-10-04
+
+> **For consuming projects:** a bump no longer edits the comment on your `PHASE` line. Nothing else changes.
+
+### Fixed
+
+- **`--bump` (and every write) rewrote the `PHASE` line's comment.** `write_version_components` replaced everything after `PHASE =` with a fixed comment, `# Per-MINOR feature set: None, "alpha", ...`. That overwrote the project's own comment on every bump and called the stable value `None`, although `PHASE` is `""` when stable. Only the value is rewritten now (`""`, `'…'` or `None` forms); whatever follows it is kept byte for byte. A value in an unrecognised form still gets its line replaced, now with an accurate comment (`"" (stable), "alpha", ...`). Found while bumping claude-bookmarks to v0.1.1.
+
 ## [0.3.2] - 2026-10-04
 
 > **For consuming projects:**
@@ -315,8 +323,9 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.2...HEAD
-[0.3.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...v0.3.2
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/DazzleTools/git-repokit-common/compare/764ea2b...v0.3.3
+[0.3.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...764ea2b
 [0.3.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.13...v0.3.0
 [0.2.13]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.12...v0.2.13

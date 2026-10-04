@@ -242,13 +242,26 @@ def write_version_components(
         content, flags=re.MULTILINE,
     )
 
-    # PHASE: write as quoted string or empty string
+    # PHASE: write as quoted string or empty string. Rewrite only the VALUE
+    # and keep whatever follows it (the project's own comment), so a bump
+    # never edits the comment. Earlier versions replaced the rest of the line
+    # with a fixed comment that called the stable value None, although PHASE
+    # is "" when stable.
     phase_str = f'"{components["phase"]}"' if components["phase"] else '""'
-    content = re.sub(
-        r'^(PHASE\s*=\s*).*$',
-        f"\\g<1>{phase_str}  # Per-MINOR feature set: None, \"alpha\", \"beta\", \"rc1\", etc.",
+    content, kept = re.subn(
+        r'^(PHASE\s*=\s*)(?:"[^"\n]*"|\'[^\'\n]*\'|None)([^\n]*)$',
+        lambda m: f"{m.group(1)}{phase_str}{m.group(2)}",
         content, flags=re.MULTILINE,
     )
+    if not kept:
+        # A value in some other form (e.g. unquoted): replace the line, with
+        # an accurate comment.
+        content = re.sub(
+            r'^(PHASE\s*=\s*).*$',
+            lambda m: (f"{m.group(1)}{phase_str}  # Per-MINOR feature set: "
+                       f'"" (stable), "alpha", "beta", "rc1", etc.'),
+            content, flags=re.MULTILINE,
+        )
 
     # PRE_RELEASE_NUM
     content = re.sub(
