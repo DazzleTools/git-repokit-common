@@ -6,6 +6,9 @@ Single source of truth: <package>/_version.py (MAJOR, MINOR, PATCH, PHASE).
 This script reads those components and propagates to:
 - _version.py __version__ string (git metadata: branch, build, date, hash)
 - CHANGELOG.md compare links at the bottom
+- any extra targets the project declares (opt-in; see docs/sync-versions.md):
+  JSON files with a version field, such as a Claude Code plugin.json,
+  a marketplace.json, a package.json or a browser extension manifest.json
 
 Replaces scripts/update-version.sh -- all version logic lives here.
 Git hooks call this with --auto.
@@ -48,6 +51,7 @@ Examples:
 
 import argparse
 import datetime
+import json
 import re
 import subprocess
 import sys
@@ -75,8 +79,12 @@ except ImportError:  # an older vendored copy without the shared helper
                 return d / "pyproject.toml"
         return None
 
-def _load_config():
-    """Load config from pyproject.toml [tool.repokit-common] or use defaults."""
+def _read_table():
+    """Return (path, table): the [tool.repokit-common] table and its file.
+
+    The table is {} when no file holds it or it cannot be parsed for want of a
+    TOML parser (warned once). An unparseable file stops with exit 2.
+    """
     try:
         import tomllib
     except ImportError:
@@ -89,48 +97,60 @@ def _load_config():
     # pyproject.toml holding [tool.repokit-common], or .repokit-common.toml,
     # walking up from this script's own location and never past the project.
     candidate = _find_config(Path(__file__).resolve().parent)
-    if candidate is not None:
-        if tomllib:
-            # A file that exists but cannot be parsed is not an absent one:
-            # falling back to the placeholder defaults would aim at the wrong
-            # files (or fail later on "$PACKAGE_NAME"). Say which file and why,
-            # in one line, and stop -- quiet when all is well, loud when not.
-            try:
-                with open(candidate, "rb") as f:
-                    data = tomllib.load(f)
-            except (tomllib.TOMLDecodeError, OSError) as e:
-                print(f"Error: cannot read {candidate}: {e}", file=sys.stderr)
-                sys.exit(2)
-            cfg = data.get("tool", {}).get("repokit-common", {})
-            if cfg:
-                tag_format = cfg.get("tag-format", _DEFAULT_TAG_FORMAT)
-                if tag_format not in _VALID_TAG_FORMATS:
-                    print(
-                        f"Warning: unknown tag-format '{tag_format}' "
-                        f"in {candidate.name} (expected: {', '.join(sorted(_VALID_TAG_FORMATS))}). "
-                        f"Falling back to '{_DEFAULT_TAG_FORMAT}'.",
-                        file=sys.stderr,
-                    )
-                    tag_format = _DEFAULT_TAG_FORMAT
-                return (
-                    cfg.get("version-source", _DEFAULT_VERSION_SOURCE),
-                    cfg.get("changelog", _DEFAULT_CHANGELOG_FILE),
-                    cfg.get("repo-url", _DEFAULT_REPO_URL),
-                    cfg.get("tag-prefix", _DEFAULT_TAG_PREFIX),
-                    tag_format,
-                )
-        else:
+    if candidate is None:
+        return None, {}
+    if not tomllib:
+        print(
+            f"Warning: found {candidate} but cannot read it: no TOML parser "
+            f"is available (use Python 3.11+ or install the tomli package). "
+            f"Using placeholder defaults.",
+            file=sys.stderr,
+        )
+        return candidate, {}
+    # A file that exists but cannot be parsed is not an absent one:
+    # falling back to the placeholder defaults would aim at the wrong
+    # files (or fail later on "$PACKAGE_NAME"). Say which file and why,
+    # in one line, and stop -- quiet when all is well, loud when not.
+    try:
+        with open(candidate, "rb") as f:
+            data = tomllib.load(f)
+    except (tomllib.TOMLDecodeError, OSError) as e:
+        print(f"Error: cannot read {candidate}: {e}", file=sys.stderr)
+        sys.exit(2)
+    return candidate, data.get("tool", {}).get("repokit-common", {})
+
+
+def _load_config(source=None):
+    """Load config from pyproject.toml [tool.repokit-common] or use defaults.
+
+    `source` is a (path, table) pair from _read_table(); left out, the table
+    is read now.
+    """
+    candidate, cfg = source if source is not None else _read_table()
+    if cfg:
+        tag_format = cfg.get("tag-format", _DEFAULT_TAG_FORMAT)
+        if tag_format not in _VALID_TAG_FORMATS:
             print(
-                f"Warning: found {candidate} but cannot read it: no TOML parser "
-                f"is available (use Python 3.11+ or install the tomli package). "
-                f"Using placeholder defaults.",
+                f"Warning: unknown tag-format '{tag_format}' "
+                f"in {candidate.name} (expected: {', '.join(sorted(_VALID_TAG_FORMATS))}). "
+                f"Falling back to '{_DEFAULT_TAG_FORMAT}'.",
                 file=sys.stderr,
             )
-
+            tag_format = _DEFAULT_TAG_FORMAT
+        return (
+            cfg.get("version-source", _DEFAULT_VERSION_SOURCE),
+            cfg.get("changelog", _DEFAULT_CHANGELOG_FILE),
+            cfg.get("repo-url", _DEFAULT_REPO_URL),
+            cfg.get("tag-prefix", _DEFAULT_TAG_PREFIX),
+            tag_format,
+        )
     return (_DEFAULT_VERSION_SOURCE, _DEFAULT_CHANGELOG_FILE, _DEFAULT_REPO_URL,
             _DEFAULT_TAG_PREFIX, _DEFAULT_TAG_FORMAT)
 
-VERSION_SOURCE, CHANGELOG_FILE, REPO_URL, TAG_PREFIX, TAG_FORMAT = _load_config()
+_CONFIG_SOURCE = _read_table()
+VERSION_SOURCE, CHANGELOG_FILE, REPO_URL, TAG_PREFIX, TAG_FORMAT = _load_config(_CONFIG_SOURCE)
+# Opt-in: [[tool.repokit-common.extra-targets]]. Absent, nothing below runs.
+EXTRA_TARGETS = _CONFIG_SOURCE[1].get("extra-targets", [])
 # --------------------------------------------------------------------
 
 
@@ -309,9 +329,27 @@ def get_git_info(root: Path, auto_mode: bool = False) -> dict:
             )
             modified = result.stdout.strip()
             if modified:
+                # "Version files": anything named _version.py (as before),
+                # plus the configured version source under any name (e.g. a
+                # root version.py) and the extra targets.
+                version_files = {Path(VERSION_SOURCE).as_posix()}
+                if isinstance(EXTRA_TARGETS, list):
+                    version_files |= {
+                        Path(t["path"]).as_posix() for t in EXTRA_TARGETS
+                        if isinstance(t, dict) and isinstance(t.get("path"), str)
+                    }
+                def _porcelain_path(line):
+                    # "XY path" or "XY old -> new"; the outer strip() above
+                    # can eat the first line's leading space, so split
+                    # rather than slice at a fixed offset.
+                    parts = line.split(None, 1)
+                    path = parts[1] if len(parts) > 1 else ""
+                    return path.split(" -> ")[-1].strip().strip('"')
+
                 other_changes = [
                     line for line in modified.split("\n")
                     if "_version.py" not in line
+                    and _porcelain_path(line) not in version_files
                 ]
                 if not other_changes:
                     # Only version files changed -- use last commit date
@@ -543,6 +581,158 @@ def update_changelog_links(
             changelog.write_text(content, encoding="utf-8")
         return True
     return False
+
+
+# ---------------------------------------------------------------------------
+# Extra targets ([[tool.repokit-common.extra-targets]], opt-in)
+# ---------------------------------------------------------------------------
+#
+# Each entry names one more file that carries the version:
+#
+#   [[tool.repokit-common.extra-targets]]
+#   path   = ".claude-plugin/plugin.json"  # required, relative to the root
+#   type   = "json"      # the only type so far
+#   field  = "version"   # the JSON key holding the version string
+#   match  = "one"       # "one": exactly one such field (default);
+#                        # "first": the first of several; "all": every one
+#   format = "human"     # "human": 0.3.2-alpha (default);
+#                        # "base": 0.3.2 (no phase -- browser manifests)
+#
+# The file is edited in place (only the version strings change), so its
+# formatting, key order, line endings and BOM survive and a bump is a
+# one-line diff. Every edit is cross-checked against a real JSON parse.
+
+_TARGET_KEYS = {"path", "type", "field", "match", "format"}
+_TARGET_TYPES = {"json"}
+_TARGET_MATCHES = {"one", "first", "all"}
+_TARGET_FORMATS = {"human", "base"}
+_UTF8_BOM = b"\xef\xbb\xbf"
+
+
+class TargetError(Exception):
+    """An extra target that cannot be checked or updated safely."""
+
+
+def _target_spec(spec, root: Path) -> dict:
+    """Validate one extra-targets entry; return it with defaults filled in."""
+    if not isinstance(spec, dict):
+        raise TargetError("each extra-targets entry must be a table")
+    unknown = sorted(set(spec) - _TARGET_KEYS)
+    if unknown:
+        raise TargetError(
+            f"unknown key(s) {', '.join(unknown)} "
+            f"(expected: {', '.join(sorted(_TARGET_KEYS))})"
+        )
+    path = spec.get("path")
+    if not isinstance(path, str) or not path.strip():
+        raise TargetError("missing 'path'")
+    s = {
+        "path": path,
+        "type": spec.get("type", "json"),
+        "field": spec.get("field", "version"),
+        "match": spec.get("match", "one"),
+        "format": spec.get("format", "human"),
+    }
+    for key, valid in (("type", _TARGET_TYPES), ("match", _TARGET_MATCHES),
+                       ("format", _TARGET_FORMATS)):
+        if s[key] not in valid:
+            raise TargetError(
+                f"{key} = {s[key]!r} (expected: {', '.join(sorted(valid))})")
+    if not isinstance(s["field"], str) or not s["field"]:
+        raise TargetError("'field' must be a non-empty string")
+    real_root = root.resolve()
+    target = (real_root / path).resolve()
+    try:
+        target.relative_to(real_root)
+    except ValueError:
+        raise TargetError("path is outside the project root") from None
+    s["file"] = target
+    return s
+
+
+def _target_version(spec: dict, components: dict) -> str:
+    """The version string this target receives."""
+    if spec["format"] == "base":
+        return f"{components['major']}.{components['minor']}.{components['patch']}"
+    return format_human_version(components)
+
+
+def _read_json_text(path: Path) -> tuple[bytes, str]:
+    """(bom, text), decoded without newline translation."""
+    try:
+        raw = path.read_bytes()
+    except FileNotFoundError:
+        raise TargetError("file not found") from None
+    bom = _UTF8_BOM if raw.startswith(_UTF8_BOM) else b""
+    try:
+        return bom, raw[len(bom):].decode("utf-8")
+    except UnicodeDecodeError as e:
+        raise TargetError(f"not UTF-8: {e}") from None
+
+
+def _json_field_spans(text: str, field: str) -> list[tuple[int, int, str]]:
+    """(start, end, value) of each "field": "value" string in the text.
+
+    The regex spans are cross-checked against a real parse: the same values in
+    the same order, every one a string, no key repeated in one object.
+    Anything else is refused rather than guessed at.
+    """
+    parsed = []
+
+    def collect(pairs):
+        keys = [k for k, _ in pairs]
+        if keys.count(field) > 1:
+            raise TargetError(f"'{field}' appears twice in one object")
+        for k, v in pairs:
+            if k == field:
+                if not isinstance(v, str):
+                    raise TargetError(f"'{field}' is not a string ({v!r})")
+                parsed.append(v)
+        return dict(pairs)
+
+    try:
+        json.loads(text, object_pairs_hook=collect)
+    except json.JSONDecodeError as e:
+        raise TargetError(f"invalid JSON: {e}") from None
+
+    pattern = re.compile(
+        r'"' + re.escape(field) + r'"\s*:\s*"((?:[^"\\]|\\.)*)"')
+    spans = [(m.start(1), m.end(1), json.loads(f'"{m.group(1)}"'))
+             for m in pattern.finditer(text)]
+    if [v for _, _, v in spans] != parsed:
+        raise TargetError(f"cannot locate each '{field}' safely")
+    return spans
+
+
+def sync_extra_target(spec, components: dict, root: Path,
+                      check: bool = False, dry_run: bool = False) -> str:
+    """Check or update one extra target. Returns "ok", "stale" (check mode),
+    or "updated" (a write happened, or would have under dry_run).
+
+    Raises TargetError when the target cannot be handled safely; the file is
+    then left untouched.
+    """
+    s = _target_spec(spec, root)
+    version = _target_version(s, components)
+    bom, text = _read_json_text(s["file"])
+    spans = _json_field_spans(text, s["field"])
+    if not spans:
+        raise TargetError(f"no '{s['field']}' field")
+    if s["match"] == "one" and len(spans) > 1:
+        raise TargetError(
+            f"{len(spans)} '{s['field']}' fields; set match = \"all\" or \"first\"")
+    if s["match"] in ("one", "first"):
+        spans = spans[:1]
+
+    if all(v == version for _, _, v in spans):
+        return "ok"
+    if check:
+        return "stale"
+    for start, end, _ in reversed(spans):
+        text = text[:start] + version + text[end:]
+    if not dry_run:
+        s["file"].write_bytes(bom + text.encode("utf-8"))
+    return "updated"
 
 
 # ---------------------------------------------------------------------------
@@ -818,9 +1008,47 @@ def main():
         if args.verbose:
             print(f"  [--] {CHANGELOG_FILE}: not found (skipped)")
 
+    # --- Sync extra targets ([[tool.repokit-common.extra-targets]]) ---
+    # Opt-in: with no entries configured this block does nothing. A target
+    # that cannot be handled safely is reported (even under --auto) and left
+    # untouched; the others still sync, and the run exits 1.
+    target_errors = 0
+    targets = EXTRA_TARGETS
+    if not isinstance(targets, list):
+        print("  [X] extra-targets: must be an array of tables "
+              "([[tool.repokit-common.extra-targets]])", file=sys.stderr)
+        target_errors += 1
+        targets = []
+    for spec in targets:
+        label = spec.get("path", "?") if isinstance(spec, dict) else "?"
+        try:
+            status = sync_extra_target(spec, components, root,
+                                       check=args.check, dry_run=args.dry_run)
+        except TargetError as e:
+            print(f"  [X] {label}: {e}", file=sys.stderr)
+            target_errors += 1
+            all_synced = False
+            continue
+        if status == "stale":
+            all_synced = False
+            print(f"  [X] {label}: version is not "
+                  f"{_target_version(_target_spec(spec, root), components)}")
+        elif status == "updated":
+            if not quiet:
+                action = "would update" if args.dry_run else "updated"
+                print(f"  [OK] {label}: version {action}")
+            files_updated.append(label)
+        elif args.verbose:
+            print(f"  [OK] {label}: version in sync")
+
     # Stage files in auto mode
     if args.auto and files_updated and not args.dry_run:
         git_stage(root, *files_updated)
+
+    if target_errors and not args.check:
+        if not quiet:
+            print(f"\n{target_errors} extra target(s) could not be synced.")
+        return 1
 
     # Summary
     if args.check:

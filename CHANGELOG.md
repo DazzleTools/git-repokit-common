@@ -8,6 +8,27 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-10-04
+
+> **For consuming projects:**
+> - **Nothing changes unless you opt in.** A project that declares no extra targets gets identical behaviour and output (checked against 37 consuming projects, six modes each).
+> - **A version source with any name now counts fully.** A project whose `version-source` is not named `*_version.py` (a root `version.py`, say) now gets the "Version updated for commit" line and the version-only date rule; before, both looked for `_version.py` alone.
+> - **Projects that kept a local fork of `sync-versions.py` to sync a JSON manifest can drop it** and declare the file instead (see below). claude-session-logger's existing `extra-targets` entries work unchanged.
+
+### Added
+
+- **Extra targets: keep JSON manifests at the project's version.** `[[tool.repokit-common.extra-targets]]` names a file (a Claude Code `plugin.json` or `marketplace.json`, a `package.json`, a browser extension `manifest.json`) whose `version` field the script keeps in step with the version source, in every mode: sync, `--bump`, `--set`, `--phase`, `--check` (exits 1 while stale), `--dry-run`, and `--auto`, which stages the updated files. Keys: `path`, `type` (`json`), `field` (`version`), `match` (`one` by default, `first`, `all`) and `format` (`human` by default, or `base` for `X.Y.Z` only, which browser manifests require).
+
+  The file is edited in place, so formatting, key order, line endings and any BOM survive and a bump is a one-line diff per field. Each edit is cross-checked against a real JSON parse; a missing or non-string field, a repeated key, invalid JSON, or a field the edit cannot locate is reported and the file left untouched, with exit 1 even under `--auto`. Unknown keys are errors. This brings upstream the extra-targets support claude-session-logger carried as a local fork, fixing four things in it: a missing field passed silently, `--check` ignored `match`, problems exited 0 so the hook never showed them, and Windows writes turned LF into CRLF.
+
+### Changed
+
+- `sync-versions.py` reads the `[tool.repokit-common]` table once (`_read_table()`), shared by the existing settings and the new targets. `_load_config()` keeps its return value and messages.
+
+### Fixed
+
+- **`version-source` under any name.** Two places matched the file name `_version.py` instead of the configured `version-source`: the pre-commit hook's "Version updated for commit" line, and the date rule in `__version__` (when only version files changed, keep the last commit's date rather than today's). Both now also accept the configured source, and the date rule the extra targets too. The old `_version.py` match is kept, so existing projects see no change. Parsing the `git status` path now splits instead of slicing at a fixed offset, which the output's outer `strip()` had broken for the first line.
+
 ## [0.3.1] - 2026-09-27
 
 > **For consuming projects:**
@@ -294,7 +315,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.2...HEAD
+[0.3.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.13...v0.3.0
 [0.2.13]: https://github.com/DazzleTools/git-repokit-common/compare/v0.2.12...v0.2.13

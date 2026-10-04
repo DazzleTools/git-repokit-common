@@ -20,7 +20,7 @@ rk_locate
 # One settings call for the whole hook; its result is acted on at the
 # private-content check below. The output style is chosen from it now.
 _rk_settings_ok=true
-rk_read_settings private-patterns output || _rk_settings_ok=false
+rk_read_settings private-patterns output version-source || _rk_settings_ok=false
 rk_setup_output
 
 # PART 1: Update version.py
@@ -33,8 +33,12 @@ if [ -n "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
     UPDATE_EXIT=$?
 
     if [ $UPDATE_EXIT -eq 0 ]; then
-        # Success - check if version.py was staged
-        if git diff --cached --name-only | grep -q "_version.py"; then
+        # Success - check if the version file was staged: anything named
+        # _version.py (as before), or the configured version-source under
+        # any name (e.g. a root version.py).
+        if git diff --cached --name-only | grep -q "_version.py" || \
+           { [ -n "${REPOKIT_VERSION_SOURCE:-}" ] && \
+             git diff --cached --name-only | grep -qxF "$REPOKIT_VERSION_SOURCE"; }; then
             echo "${RK_OK} Version updated for commit"
         fi
     else

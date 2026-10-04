@@ -77,6 +77,37 @@ Reading this table needs a TOML parser: the standard library's `tomllib` on Pyth
 
 For stable releases (no phase), both produce identical tags: `v0.3.0`.
 
+### Extra Targets
+
+Some projects carry the version in more files than the version source: a Claude Code `plugin.json` and `marketplace.json`, a `package.json`, a browser extension's `manifest.json`. Declare each one and the script keeps it at the same version:
+
+```toml
+[[tool.repokit-common.extra-targets]]
+path = ".claude-plugin/plugin.json"
+
+[[tool.repokit-common.extra-targets]]
+path = ".claude-plugin/marketplace.json"
+match = "all"           # it carries the version twice: top level and per plugin
+
+[[tool.repokit-common.extra-targets]]
+path = "src/manifest.json"
+format = "base"         # browser manifests accept only X.Y.Z
+```
+
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `path` | (required) | The file, relative to the project root. A path outside the root is refused |
+| `type` | `"json"` | The only type so far |
+| `field` | `"version"` | The JSON key that holds the version string |
+| `match` | `"one"` | `"one"`: the file must have exactly one such field (a second one is an error, so a file is never left half-updated); `"first"`: the first of several; `"all"`: every one |
+| `format` | `"human"` | `"human"`: `0.3.2-alpha`; `"base"`: `0.3.2`, the phase dropped |
+
+The targets follow every mode: a sync, `--bump`, `--set` and `--phase` write the new version; `--check` exits 1 while a target is stale; `--dry-run` writes nothing; `--auto` (the pre-commit hook) updates and stages them with the version file. The version written is the human form, never the build-stamped `__version__` string and never the PEP 440 form.
+
+Only the version strings change: each file is edited in place, so its formatting, key order, line endings (LF or CRLF) and any BOM survive, and a bump is a one-line diff per field. Every edit is cross-checked against a real JSON parse first. A missing field, a non-string value, a key repeated in one object, invalid JSON, or a field the edit cannot locate safely is reported and the file is left untouched; the other targets still sync and the run exits 1, even under `--auto`, so the hook shows the problem. An unknown key in an entry (a typo such as `feild`) is an error, not a silent no-op.
+
+Extra targets are opt-in: a project that declares none sees no change in behaviour or output.
+
 ## Usage
 
 ### Check if versions are in sync
