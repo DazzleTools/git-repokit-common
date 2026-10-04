@@ -178,6 +178,19 @@ def test_captured_output_is_plain_text(repo):
     assert "\x1b" not in out and "✓" not in out
 
 
+@pytest.mark.parametrize("var", ["FORCE_COLOR", "PY_COLORS"])
+def test_a_colour_forcing_environment_keeps_the_summary_plain(repo, var):
+    """CONSEQUENCE: 5 (behaviour) -- FORCE_COLOR or PY_COLORS (set by CI and some terminals) cannot put pytest's escape codes into the summary the hook prints."""
+    # One variable at a time: drop any colour settings inherited from the shell
+    # running the suite (Claude Code exports FORCE_COLOR) so each case stands alone.
+    env = {k: v for k, v in os.environ.items() if k not in ("FORCE_COLOR", "PY_COLORS", "NO_COLOR")}
+    env[var] = "1"
+    r, out, landed = _push(repo, {"tests/test_a.py": PASSING}, env=env)
+    assert r.returncode == 0 and landed, out
+    assert "[OK] All tests passed: 1 passed" in out
+    assert "\x1b" not in out
+
+
 def test_output_rich_setting_forces_symbols_and_colour(repo):
     """CONSEQUENCE: 4 (behaviour) -- output = "rich" gives the symbols and colour even when captured."""
     r, out, landed = _push(repo, {".repokit-common.toml": '[tool.repokit-common]\noutput = "rich"\n',

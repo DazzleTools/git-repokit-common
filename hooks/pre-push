@@ -249,7 +249,10 @@ else
     if ! $DECLARED && [ -z "$(find tests/ -name 'test_*.py' -type f -not -path '*/one-offs/*' -not -path '*/thinking/*' 2>/dev/null | head -1)" ]; then
         echo -e "${YELLOW}${RK_WARN}${NC} No test files found (tests/test_*.py) -- skipping"
     else
-        _out="$("${PYTEST[@]}" -q "${SCOPE[@]}" 2>&1)"
+        # --color=no: the summary is parsed and reprinted with the hook's own
+        # markers, and FORCE_COLOR / PY_COLORS in the environment would
+        # otherwise put pytest's escape codes into it even when captured.
+        _out="$("${PYTEST[@]}" -q --color=no "${SCOPE[@]}" 2>&1)"
         _rc=$?
         # pytest's closing summary, e.g. "12 passed, 1 skipped in 0.40s".
         _summary="$(echo "$_out" | grep -E '(passed|failed|error|no tests ran|skipped|deselected)' | tail -n1 | sed -E 's/^=+ //; s/ =+$//')"

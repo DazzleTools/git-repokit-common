@@ -25,31 +25,28 @@ def _write(tmp_path, phase_line, components=BASE):
     return f.read_text(encoding="utf-8").splitlines()[3]
 
 
-def test_bump_keeps_the_projects_own_comment(tmp_path):
-    """CONSEQUENCE: 8 -- the anchor: the comment survives a bump verbatim."""
+def test_a_write_changes_the_value_and_keeps_the_projects_own_comment(tmp_path):
+    """CONSEQUENCE: 6 (behaviour) -- the anchor: a bump leaves the comment
+    verbatim, and setting a phase changes the value, not the comment."""
     assert _write(tmp_path, f'PHASE = ""  {OWN}') == f'PHASE = ""  {OWN}'
-
-
-def test_phase_change_rewrites_only_the_value(tmp_path):
-    """CONSEQUENCE: 8 -- setting a phase changes the value, not the comment."""
     line = _write(tmp_path, f'PHASE = ""  {OWN}', dict(BASE, phase="alpha"))
     assert line == f'PHASE = "alpha"  {OWN}'
 
 
 def test_a_line_without_a_comment_gains_none(tmp_path):
-    """CONSEQUENCE: 6 -- no comment in, no comment out (nothing invented)."""
+    """CONSEQUENCE: 5 (behaviour) -- no comment in, no comment out (nothing invented)."""
     assert _write(tmp_path, 'PHASE = "beta"') == 'PHASE = ""'
 
 
 def test_none_and_single_quoted_values_are_rewritten(tmp_path):
-    """CONSEQUENCE: 6 -- the forms read_version_components accepts all write cleanly."""
+    """CONSEQUENCE: 5 (behaviour) -- the forms read_version_components accepts all write cleanly."""
     assert _write(tmp_path, "PHASE = None  # old") == 'PHASE = ""  # old'
     assert _write(tmp_path, "PHASE = 'alpha'  # q") == 'PHASE = ""  # q'
 
 
 def test_unrecognised_value_falls_back_with_an_accurate_comment(tmp_path):
-    """CONSEQUENCE: 5 -- an odd value is still replaced, and the comment no
-    longer calls the stable value None."""
+    """CONSEQUENCE: 4 (behaviour) -- an odd value is still replaced, and the
+    comment no longer calls the stable value None."""
     line = _write(tmp_path, "PHASE = alpha")
     assert line.startswith('PHASE = ""  #')
     assert "None" not in line and '"" (stable)' in line

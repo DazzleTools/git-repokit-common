@@ -8,6 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.4] - 2026-10-04
+
+> **For consuming projects:** the pre-push hook's test summary stays plain text when your environment forces colour. Nothing to change on your side.
+
+### Fixed
+
+- **The pre-push hook's "All tests passed" line carried pytest's colour codes when `FORCE_COLOR` or `PY_COLORS` was set** (CI runners and some terminals set them). pytest coloured its own summary even though the hook captured it, so the line the hook reprints, and any log of it, held raw escape sequences instead of `All tests passed: 12 passed`. The hook now runs pytest with `--color=no` and applies its own colours as before.
+
+### Removed
+
+- **`.github/dependabot.yml`.** It asked for `pip` and `github-actions` updates, and this repository has neither a Python manifest nor workflows, so every scheduled run failed. GitHub's security alerts do not depend on the file.
+
 ## [0.3.3] - 2026-10-04
 
 > **For consuming projects:** a bump no longer edits the comment on your `PHASE` line. Nothing else changes.
@@ -324,6 +336,7 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
 [Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...HEAD
+[0.3.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...main
 [0.3.3]: https://github.com/DazzleTools/git-repokit-common/compare/764ea2b...v0.3.3
 [0.3.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...764ea2b
 [0.3.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.0...v0.3.1
