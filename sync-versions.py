@@ -71,13 +71,23 @@ _VALID_TAG_FORMATS = {"pep440", "human"}
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
-    from repokit_config import find_config as _find_config
+    from repokit_config import (
+        ConfigError as _ConfigError,
+        find_config as _find_config,
+        table_of as _table_of,
+    )
 except ImportError:  # an older vendored copy without the shared helper
+    class _ConfigError(Exception):
+        pass
+
     def _find_config(start):
         for d in (start, *start.parents):
             if (d / "pyproject.toml").is_file():
                 return d / "pyproject.toml"
         return None
+
+    def _table_of(data, path):
+        return data.get("tool", {}).get("repokit-common", {})
 
 def _read_table():
     """Return (path, table): the [tool.repokit-common] table and its file.
@@ -117,7 +127,12 @@ def _read_table():
     except (tomllib.TOMLDecodeError, OSError) as e:
         print(f"Error: cannot read {candidate}: {e}", file=sys.stderr)
         sys.exit(2)
-    return candidate, data.get("tool", {}).get("repokit-common", {})
+    # The table; a loose key in .repokit-common.toml stops here (repokit_config.py).
+    try:
+        return candidate, _table_of(data, candidate)
+    except _ConfigError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(2)
 
 
 def _load_config(source=None):

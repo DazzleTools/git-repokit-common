@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.5] - 2026-10-04
+
+> **For consuming projects:** nothing to change if your settings are in `pyproject.toml`, or under a `[tool.repokit-common]` header in `.repokit-common.toml`. A `.repokit-common.toml` written without that header used to be read as empty; it now stops the hooks and `sync-versions.py` with the reason.
+
+### Fixed
+
+- **A `.repokit-common.toml` written without the `[tool.repokit-common]` header was read as empty, with no warning.** The file was found, its keys ignored, and the hooks and `sync-versions.py` ran with no version source, no private patterns and no extra targets. A key outside any table now stops both with exit 2, naming the key and the header it belongs under. Other tables may share the file. Found by claude-bookmarks, the first project to use the file instead of `pyproject.toml`.
+- **The pre-push hook warned "No Python package directory found" on every push in projects that are not Python packages** (a TypeScript, C or Rust project whose Python is only the repo tooling), which teaches people to skip the hook's real warnings. It now warns only a project that declares a Python package (a `pyproject.toml` with `[project]`, or `setup.py` or `setup.cfg`); Python packages see it exactly as before, and the checks still cover every `.py` file.
+- **A bare `pytest` in a consuming project also ran the vendored copy's own suite** (claude-bookmarks: 191 tests collected for its 9). A `conftest.py` at the copy's root skips that suite when the copy sits inside another project (subtree, copy or submodule); `pytest scripts/repokit-common/tests` still runs it, and in this repository nothing changes.
+
 ## [0.3.4] - 2026-10-04
 
 > **For consuming projects:** the pre-push hook's test summary stays plain text when your environment forces colour. Nothing to change on your side.
@@ -335,8 +345,9 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...HEAD
-[0.3.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...main
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.5...HEAD
+[0.3.5]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.4...v0.3.5
+[0.3.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/DazzleTools/git-repokit-common/compare/764ea2b...v0.3.3
 [0.3.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.1...764ea2b
 [0.3.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.0...v0.3.1

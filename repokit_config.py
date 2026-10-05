@@ -3,8 +3,9 @@
 
 Settings live in the consuming project's ``pyproject.toml`` under
 ``[tool.repokit-common]``. A project without a ``pyproject.toml`` (C/C++,
-Rust, ...) puts the same table in a ``.repokit-common.toml`` at its root.
-When both exist in one directory, ``pyproject.toml`` wins.
+Rust, TypeScript, ...) puts the same table in a ``.repokit-common.toml`` at
+its root; a key there outside any table is an error, never silently ignored.
+When both files exist in one directory, ``pyproject.toml`` wins.
 
 Discovery walks up from the calling tool's own directory -- not the current
 directory -- to the nearest file that holds the table, skipping a
@@ -138,11 +139,31 @@ def _load_toml(path):
         raise ConfigError(f"cannot read {path}: {e}") from None
 
 
+def table_of(data, path):
+    """The [tool.repokit-common] table in ``data``, parsed from ``path``
+    (a dict; empty when absent).
+
+    Both files use the table, so a TOML file always says what its keys are
+    for and can hold other tables too. In the fallback file a key outside any
+    table cannot be meant for anything else, so it is refused: before 0.3.5 a
+    fallback file written without the header was found and then read as
+    empty, with no warning.
+    """
+    tool = data.get("tool", {})
+    table = tool.get(TABLE, {}) if isinstance(tool, dict) else {}
+    table = table if isinstance(table, dict) else {}
+    if Path(path).name == FALLBACK_NAME:
+        loose = sorted(k for k, v in data.items() if not isinstance(v, dict))
+        if loose:
+            raise ConfigError(
+                f"{path}: {', '.join(loose)} outside any table; repokit-common "
+                f"settings go under a [tool.{TABLE}] header")
+    return table
+
+
 def read_table(path):
-    """The [tool.repokit-common] table from ``path`` (a dict; empty when absent)."""
-    data = _load_toml(path)
-    table = data.get("tool", {}).get(TABLE, {})
-    return table if isinstance(table, dict) else {}
+    """The settings from ``path``: see table_of."""
+    return table_of(_load_toml(path), path)
 
 
 def load(start):

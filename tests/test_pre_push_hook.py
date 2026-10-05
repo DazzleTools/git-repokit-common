@@ -367,10 +367,17 @@ def test_repokit_common_as_the_project_gates_its_own_tests(repo):
 
 
 def test_no_tests_is_a_notice_and_the_push_continues(repo):
-    """CONSEQUENCE: 6 (behaviour) -- zero configuration for a project with no tests."""
+    """CONSEQUENCE: 6 (behaviour) -- zero configuration for a project with no
+    tests: a notice. A project that is not a Python package (TypeScript, C,
+    Rust) gets no warning about a missing package; one that declares itself a
+    package in pyproject.toml still does."""
     r, out, landed = _push(repo, {"app.py": "x = 1\n"})
     assert r.returncode == 0 and landed, out
     assert "No test files found" in out
+    assert "No Python package" not in out
+    r, out, landed = _push(repo, {"pyproject.toml": '[project]\nname = "p"\n'})
+    assert r.returncode == 0 and landed, out
+    assert "No Python package directory found" in out
 
 
 def test_test_files_without_tests_are_a_notice_not_a_failure(repo):

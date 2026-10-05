@@ -138,8 +138,16 @@ if [ -z "$PACKAGE_DIR" ] && [ -d "src" ]; then
 fi
 
 if [ -z "$PACKAGE_DIR" ]; then
-    echo -e "${YELLOW}Warning: No Python package directory found (no __init__.py)${NC}"
-    echo "Skipping package-specific checks"
+    # Warn only a project that declares itself a Python package; there a
+    # missing __init__.py is worth saying. A TypeScript, C or Rust project
+    # whose Python is only tooling would get it on every push, which teaches
+    # people to skip the real warnings. Either way the checks below then
+    # cover every .py file.
+    if [ -f setup.py ] || [ -f setup.cfg ] || \
+       { [ -f pyproject.toml ] && grep -qE '^[[:space:]]*\[project\]' pyproject.toml; }; then
+        echo -e "${YELLOW}Warning: No Python package directory found (no __init__.py)${NC}"
+        echo "Skipping package-specific checks"
+    fi
     PACKAGE_DIR="."
 fi
 
