@@ -20,7 +20,7 @@ rk_locate
 # One settings call for the whole hook; its result is acted on at the
 # private-content check below. The output style is chosen from it now.
 _rk_settings_ok=true
-rk_read_settings private-patterns output version-source || _rk_settings_ok=false
+rk_read_settings private-patterns private-branches output version-source || _rk_settings_ok=false
 rk_setup_output
 
 # PART 1: Update version.py

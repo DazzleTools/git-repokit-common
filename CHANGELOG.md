@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.3.6] - 2026-10-08
+
+> **For consuming projects:** nothing to change. Without the new setting, the private branches are the same as before.
+
+### Added
+- `private-branches` setting for the pre-commit hook: the branches where private content may be committed, as shell glob patterns. Unset keeps the built-in list (`local`, `private`, `feature/*`, `feat/*`, `prototype/*`, `experiment/*`, `spike/*`). Setting it replaces that list, as `strict-branches` does. `REPOKIT_PRIVATE_BRANCHES` overrides it for one run. This lets a project with its own private branch name, such as one git-repokit created with `--private-branch scratch`, use these hooks instead of its own.
+
 ## [0.3.5] - 2026-10-04
 
 > **For consuming projects:** nothing to change if your settings are in `pyproject.toml`, or under a `[tool.repokit-common]` header in `.repokit-common.toml`. A `.repokit-common.toml` written without that header used to be read as empty; it now stops the hooks and `sync-versions.py` with the reason.
@@ -345,7 +352,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.5...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.6...HEAD
+[0.3.6]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...v0.3.4
 [0.3.3]: https://github.com/DazzleTools/git-repokit-common/compare/764ea2b...v0.3.3

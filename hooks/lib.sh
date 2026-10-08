@@ -11,6 +11,7 @@
 # One place for all of this, so a fix reaches every hook (#14).
 
 RK_DEFAULT_STRICT_BRANCHES="main master staging live"
+RK_DEFAULT_PRIVATE_BRANCHES="local private feature/* feat/* prototype/* experiment/* spike/*"
 
 # Sets REPO_ROOT, RK_DIR (the vendored copy), CONFIG_TOOL, VENDORED_DIR (RK_DIR
 # relative to the root; empty when repokit-common is the project itself),
@@ -21,6 +22,7 @@ rk_locate() {
     # branches this run", while an unset strict-branches setting reads as empty
     # too and means "the default set".
     _RK_ENV_STRICT="${REPOKIT_STRICT_BRANCHES+set}"
+    _RK_ENV_PRIVATE="${REPOKIT_PRIVATE_BRANCHES+set}"
     _RK_ENV_OUTPUT="${REPOKIT_OUTPUT+set}"
     # One path form throughout: git answers C:/..., sh's pwd /c/...; resolving
     # through cd makes prefix stripping below reliable.
@@ -123,12 +125,36 @@ rk_setup_output() {
     fi
 }
 
-# Branches where private content may be committed.
-rk_is_private_branch() {
-    case "$1" in
-        local|private|feature/*|feat/*|prototype/*|experiment/*|spike/*) return 0 ;;
-    esac
+# rk_match_patterns BRANCH PATTERNS -- true when BRANCH matches one of the
+# shell glob PATTERNS (space- or newline-separated). Patterns are matched,
+# never expanded against files.
+rk_match_patterns() {
+    _rk_noglob_was=""
+    case $- in *f*) _rk_noglob_was=1 ;; esac
+    set -f
+    for _rk_p in $2; do
+        case "$1" in
+            $_rk_p) [ -z "$_rk_noglob_was" ] && set +f; return 0 ;;
+        esac
+    done
+    [ -z "$_rk_noglob_was" ] && set +f
     return 1
+}
+
+# rk_is_private_branch BRANCH -- true when private content may be committed on
+# BRANCH: it matches private-branches (shell glob patterns), or the default
+# set when the project sets none -- local, private, and the feature/, feat/,
+# prototype/, experiment/ and spike/ prefixes. A project that names its own
+# private branch (git-repokit's --private-branch) lists it here; the setting
+# replaces the default, as strict-branches does. REPOKIT_PRIVATE_BRANCHES
+# overrides it for one run, and an empty value makes every branch public.
+# Read settings first.
+rk_is_private_branch() {
+    if [ "${_RK_ENV_PRIVATE-}" = set ] || [ -n "${REPOKIT_PRIVATE_BRANCHES-}" ]; then
+        rk_match_patterns "$1" "${REPOKIT_PRIVATE_BRANCHES-}"
+    else
+        rk_match_patterns "$1" "$RK_DEFAULT_PRIVATE_BRANCHES"
+    fi
 }
 
 # rk_is_strict_branch BRANCH -- true when BRANCH matches strict-branches (shell
@@ -141,15 +167,5 @@ rk_is_strict_branch() {
     else
         _rk_patterns="$RK_DEFAULT_STRICT_BRANCHES"     # the project sets none
     fi
-    # Patterns are matched, never expanded against files.
-    _rk_noglob_was=""
-    case $- in *f*) _rk_noglob_was=1 ;; esac
-    set -f
-    for _rk_p in $_rk_patterns; do
-        case "$1" in
-            $_rk_p) [ -z "$_rk_noglob_was" ] && set +f; return 0 ;;
-        esac
-    done
-    [ -z "$_rk_noglob_was" ] && set +f
-    return 1
+    rk_match_patterns "$1" "$_rk_patterns"
 }

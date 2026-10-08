@@ -79,6 +79,7 @@ repo-url = "https://github.com/DazzleTools/my-project"
 tag-prefix = "v"
 tag-format = "pep440"
 private-patterns = ["private/", "local/", ".env"]
+private-branches = ["private", "local", "feature/*", "scratch"]
 test-command = "python tests/run_all.py"
 print-warning = false
 strict-branches = ["main", "master", "staging", "live", "release/*"]
@@ -90,6 +91,7 @@ output = "auto"
 | `version-source`, `changelog`, `repo-url`, `tag-prefix`, `tag-format` | `sync-versions.py` | See [docs/sync-versions.md](docs/sync-versions.md) |
 | `gh-issue-full-default` | `gh_issue_full.py` | `full` or `truncated` |
 | `private-patterns` | pre-commit | Extra paths a public branch must not receive. Each entry is a **literal path prefix from the repository root**, not a regular expression: `private/` blocks `private/notes.md` but not `docs/private/notes.md`, and `.env` blocks `.env` and `.env.local`. Entries are added to the built-in list, never replacing it. `.repokit-allowlist` still exempts listed paths |
+| `private-branches` | pre-commit | The branches where private content may be committed, as shell glob patterns; every other branch is public. Unset means `local`, `private` and the `feature/`, `feat/`, `prototype/`, `experiment/` and `spike/` prefixes. Setting it **replaces** that list, as `strict-branches` does, so list every branch you want private (git-repokit writes it for a project created with `--private-branch NAME`). `REPOKIT_PRIVATE_BRANCHES` overrides it for one run, and an empty value makes every branch public |
 | `test-command` | pre-push | Replaces pytest. Run with `sh -c` from the repository root; any non-zero exit counts as failing tests |
 | `print-warning` | pre-push | `false` turns off the warning about many `print()` calls (for CLIs, whose output is `print()` by design). The count never includes `tests/` or the vendored copy |
 | `strict-branches` | pre-push, hook stubs | The gated branches, as shell glob patterns. Failing tests, or a test runner that cannot start, block a push to them and are warnings elsewhere. Unset means `main`, `master`, `staging` and `live`, from git-repokit's branch model: `main` passes CI, `staging` is pre-release, `live` is production. `REPOKIT_STRICT_BRANCHES` overrides it for one run, and an empty value gates nothing |
