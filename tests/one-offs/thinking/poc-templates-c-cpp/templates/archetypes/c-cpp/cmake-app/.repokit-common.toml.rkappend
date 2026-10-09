@@ -1,0 +1,4 @@
+
+[[tool.repokit-common.extra-targets]]
+path = "vcpkg.json"
+field = "version-string"

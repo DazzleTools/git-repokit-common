@@ -1,0 +1,31 @@
+# The templates repo's index: what each archetype is made of.
+# Layers are applied in order (base, then the language, then the archetype);
+# a later file replaces an earlier one, and a file named <name>.rkappend is
+# appended to <name> instead.
+
+[archetypes."c-cpp/cmake-app"]
+layers = ["base", "languages/c-cpp", "archetypes/c-cpp/cmake-app"]
+languages = ["c-cpp"]
+description = "CMake + presets + vcpkg manifest + CTest + 3-OS CI (xormove's shape)"
+
+[archetypes."c-cpp/msbuild"]
+layers = ["base", "languages/c-cpp", "archetypes/c-cpp/msbuild"]
+languages = ["c-cpp"]
+description = "Visual Studio solution, Windows only"
+
+[archetypes."c-cpp/minimal"]
+layers = ["base", "languages/c-cpp", "archetypes/c-cpp/minimal"]
+languages = ["c-cpp"]
+description = "One source file, Makefile + build.bat"
+
+[archetypes."c-cpp/cmake-lib"]
+stub = true
+description = "Library with install/export targets and a package config (starts from cmake-app)"
+
+[archetypes."c-cpp/qt"]
+stub = true
+description = "Qt 6 app: find_package(Qt6), qt_add_executable, windeployqt (starts from cmake-app)"
+
+[archetypes."python/qt"]
+stub = true
+description = "Python Qt app (PySide6 or PyQt), like DazzleML/ai-training-monitor"

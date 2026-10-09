@@ -1,0 +1,20 @@
+
+# --- C/C++ build outputs ---
+build/
+out/
+cmake-build-*/
+CMakeUserPresets.json
+vcpkg_installed/
+.vs/
+x64/
+Win32/
+ARM64/
+*.obj
+*.o
+*.exe
+*.pdb
+*.ilk
+*.lib
+*.dll
+*.res
+*.user

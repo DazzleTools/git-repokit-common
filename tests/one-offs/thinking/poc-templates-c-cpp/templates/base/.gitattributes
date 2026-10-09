@@ -1,0 +1,8 @@
+* text=auto
+*.sh text eol=lf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+*.png binary
+*.ico binary
+# The vendored tooling is not the product's language.
+scripts/repokit-common/** linguist-vendored

@@ -1,0 +1,12 @@
+# --- common ---
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+.vscode/
+.idea/
+release-artifacts/
+test-runs/
+# RepoKit private content
+private/
+CLAUDE.md

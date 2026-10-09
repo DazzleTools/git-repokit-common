@@ -1,0 +1,7 @@
+[tool.repokit-common]
+version-source = "include/__RK_SNAKE__/version.h"
+languages = ["c-cpp"]
+changelog = "CHANGELOG.md"
+repo-url = "https://github.com/__RK_ORG__/__RK_PROJECT__"
+tag-prefix = "v"
+tag-format = "human"
