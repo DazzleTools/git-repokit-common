@@ -11,8 +11,12 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Repository root via git (works for any subtree prefix depth)
 REPO_ROOT="$(cd "$SCRIPT_DIR" && git rev-parse --show-toplevel)"
-# Subtree prefix derived from this script's location relative to the repo root
-PREFIX="${SCRIPT_DIR#"$REPO_ROOT"/}"
+# Subtree prefix: this script's folder relative to the repo root, asked of git
+# itself. Stripping $REPO_ROOT from $SCRIPT_DIR fails on Windows, where git
+# answers C:/... and the shell's pwd /c/... (or /tmp/...), leaving an absolute
+# "prefix" that `git subtree pull` reports as never added.
+PREFIX="$(cd "$SCRIPT_DIR" && git rev-parse --show-prefix)"
+PREFIX="${PREFIX%/}"
 REMOTE_NAME="repokit-common"
 REMOTE_URL="https://github.com/DazzleTools/git-repokit-common.git"
 
@@ -58,8 +62,46 @@ case "${1:-pull}" in
         echo "Done."
         ;;
     pull|"")
+        # `git subtree pull` refuses a dirty tree, and the pre-commit hook makes
+        # most trees dirty by exactly one line: the version source's __version__
+        # stamp. When that line is the only change, keep the work safe and pull:
+        # save a snapshot, restore the file from HEAD, pull, then re-stamp with
+        # sync-versions.py. Any other change is refused and named, and nothing
+        # is touched -- a pull must never cost a user their uncommitted work.
+        DIRTY="$(git status --porcelain --untracked-files=no)"
+        RESTAMP=""
+        if [ -n "$DIRTY" ]; then
+            VSRC="$(python "$SCRIPT_DIR/repokit_config.py" --get version-source 2>/dev/null || true)"
+            DIRTY_PATHS="$(printf '%s\n' "$DIRTY" | sed 's/^.. //; s/^"\(.*\)"$/\1/; s/.* -> //')"
+            stamp_only() {
+                # one file, one line changed, and that line is the __version__ stamp
+                [ "$(git diff --numstat -- "$1" | awk '{print $1, $2}')" = "1 1" ] || return 1
+                [ -z "$(git diff -U0 -- "$1" | grep '^[-+][^-+]' | grep -v '__version__')" ]
+            }
+            if [ -n "$VSRC" ] && [ "$DIRTY_PATHS" = "$VSRC" ] && stamp_only "$VSRC"; then
+                if command -v dz >/dev/null 2>&1 && dz git-snapshot --help >/dev/null 2>&1; then
+                    dz git-snapshot save "update-common: before pulling $REMOTE_NAME" >/dev/null \
+                        && echo "Saved a dz git-snapshot of the tree."
+                else
+                    BAK="$(git rev-parse --git-dir)/repokit-common-stamp.bak"
+                    cp "$VSRC" "$BAK"
+                    echo "Saved a copy of $VSRC at $BAK."
+                fi
+                git checkout -- "$VSRC"
+                RESTAMP="$VSRC"
+                echo "Set aside the version stamp in $VSRC (the only change); it is restored after the pull."
+            else
+                echo "Refusing to pull: the working tree has changes other than the version stamp:"
+                printf '%s\n' "$DIRTY" | sed 's/^/    /'
+                echo "Commit or stash them, then run again. Nothing was touched."
+                exit 1
+            fi
+        fi
         echo "Pulling latest $REMOTE_NAME into $PREFIX/..."
         git subtree pull --prefix="$PREFIX" "$REMOTE_NAME" main --squash
+        if [ -n "$RESTAMP" ]; then
+            python "$SCRIPT_DIR/sync-versions.py" >/dev/null && echo "Re-stamped $RESTAMP."
+        fi
         echo "Done."
         ;;
     --help|-h|help)

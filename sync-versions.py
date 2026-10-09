@@ -166,6 +166,111 @@ _CONFIG_SOURCE = _read_table()
 VERSION_SOURCE, CHANGELOG_FILE, REPO_URL, TAG_PREFIX, TAG_FORMAT = _load_config(_CONFIG_SOURCE)
 # Opt-in: [[tool.repokit-common.extra-targets]]. Absent, nothing below runs.
 EXTRA_TARGETS = _CONFIG_SOURCE[1].get("extra-targets", [])
+# versioning = "off": the project keeps no version source (a notes repository,
+# a tool that versions itself another way). Every run then does nothing and
+# exits 0, so the hooks stay quiet. Anything but "off" means on.
+VERSIONING = _CONFIG_SOURCE[1].get("versioning", "on")
+
+
+# ---------------------------------------------------------------------------
+# Version source kinds
+# ---------------------------------------------------------------------------
+#
+# The source of truth can be a Python file (MAJOR = 0 ... plus a stamped
+# __version__), a plain text file holding "x.y.z" or "x.y.z-phase" (a VERSION
+# file; repokit-common's own), or a C/C++ header of #define lines
+# (<PREFIX>_VERSION_MAJOR 0 ... _VERSION_PHASE "" ... _VERSION_STRING "0.1.0").
+# The plain and header kinds carry no __version__ stamp, so the git-metadata
+# step leaves them alone; a C project stamps at build time (CMake) instead.
+# Header and plain files are edited on their bytes: only the version text
+# changes, and a BOM, the line endings and every other byte are kept
+# (Dazzle-Locate64's cp1252 .rc lesson).
+
+_HEADER_SUFFIXES = {".h", ".hpp", ".hh", ".hxx"}
+_PLAIN_VERSION = re.compile(rb"^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.]+))?\s*$")
+_DEFINE_NUM = rb"^([ \t]*#define[ \t]+\w+?_VERSION_%s[ \t]+)(\d+)"
+_DEFINE_STR = rb'^([ \t]*#define[ \t]+\w+?_VERSION_%s[ \t]+")([^"\r\n]*)(")'
+
+
+def source_kind(path) -> str:
+    """"python", "c-header" or "plain" for a version-source path."""
+    p = Path(path)
+    if p.suffix == ".py":
+        return "python"
+    if p.suffix.lower() in _HEADER_SUFFIXES:
+        return "c-header"
+    return "plain"
+
+
+def _split_bom(data: bytes) -> tuple[bytes, bytes]:
+    bom = b"\xef\xbb\xbf"
+    return (bom, data[len(bom):]) if data.startswith(bom) else (b"", data)
+
+
+def _read_plain_components(file_path: Path) -> dict:
+    _, body = _split_bom(file_path.read_bytes())
+    first = next((line for line in body.splitlines() if line.strip()), b"")
+    m = _PLAIN_VERSION.match(first.strip())
+    if not m:
+        raise ValueError(f"Could not parse x.y.z[-phase] from {file_path}")
+    phase = m.group(4).decode() if m.group(4) else None
+    return {"major": int(m.group(1)), "minor": int(m.group(2)), "patch": int(m.group(3)),
+            "phase": phase, "pre_release_num": 1, "project_phase": None}
+
+
+def _write_plain_components(file_path: Path, components: dict, dry_run: bool) -> bool:
+    data = file_path.read_bytes()
+    bom, body = _split_bom(data)
+    nl = b"\r\n" if b"\r\n" in body else b"\n"
+    new = bom + format_human_version(components).encode() + nl
+    if new == data:
+        return False
+    if not dry_run:
+        file_path.write_bytes(new)
+    return True
+
+
+_PROJECT_PHASE_DEFINE = rb'^([ \t]*#define[ \t]+\w+?_PROJECT_PHASE[ \t]+")([^"\r\n]*)(")'
+
+
+def _read_header_components(file_path: Path) -> dict:
+    """The same six components Python's _version.py yields. PRE_RELEASE_NUM
+    (#define X_VERSION_PRE_RELEASE_NUM n) and PROJECT_PHASE (#define
+    X_PROJECT_PHASE "alpha") are optional, as their Python lines are."""
+    data = file_path.read_bytes()
+    nums = {}
+    for part in ("MAJOR", "MINOR", "PATCH"):
+        m = re.search(_DEFINE_NUM % part.encode(), data, re.M)
+        if not m:
+            raise ValueError(f"Could not parse #define ..._VERSION_{part} from {file_path}")
+        nums[part.lower()] = int(m.group(2))
+    phase_m = re.search(_DEFINE_STR % b"PHASE", data, re.M)
+    phase = phase_m.group(2).decode("utf-8", "replace") if phase_m and phase_m.group(2) else None
+    pre_m = re.search(_DEFINE_NUM % b"PRE_RELEASE_NUM", data, re.M)
+    proj_m = re.search(_PROJECT_PHASE_DEFINE, data, re.M)
+    return {**nums, "phase": phase,
+            "pre_release_num": int(pre_m.group(2)) if pre_m else 1,
+            "project_phase": proj_m.group(2).decode("utf-8", "replace") if proj_m else None}
+
+
+def _write_header_components(file_path: Path, components: dict, dry_run: bool) -> bool:
+    """Rewrites MAJOR, MINOR, PATCH, PHASE, STRING and -- when the header has
+    the define -- PRE_RELEASE_NUM. PROJECT_PHASE is read-only, as in Python."""
+    data = file_path.read_bytes()
+    new = data
+    for part in ("MAJOR", "MINOR", "PATCH", "PRE_RELEASE_NUM"):
+        key = "pre_release_num" if part == "PRE_RELEASE_NUM" else part.lower()
+        new = re.sub(_DEFINE_NUM % part.encode(),
+                     lambda m, v=components[key]: m.group(1) + str(v).encode(), new, flags=re.M)
+    phase = (components["phase"] or "").encode()
+    new = re.sub(_DEFINE_STR % b"PHASE", lambda m: m.group(1) + phase + m.group(3), new, flags=re.M)
+    new = re.sub(_DEFINE_STR % b"STRING",
+                 lambda m: m.group(1) + format_human_version(components).encode() + m.group(3), new, flags=re.M)
+    if new == data:
+        return False
+    if not dry_run:
+        file_path.write_bytes(new)
+    return True
 # --------------------------------------------------------------------
 
 
@@ -197,6 +302,11 @@ def find_project_root() -> Path:
 
 def read_version_components(file_path: Path) -> dict:
     """Read MAJOR, MINOR, PATCH, PHASE, PRE_RELEASE_NUM, PROJECT_PHASE."""
+    kind = source_kind(file_path)
+    if kind == "plain":
+        return _read_plain_components(file_path)
+    if kind == "c-header":
+        return _read_header_components(file_path)
     content = file_path.read_text(encoding="utf-8")
 
     major = re.search(r"^MAJOR\s*=\s*(\d+)", content, re.MULTILINE)
@@ -238,6 +348,11 @@ def write_version_components(
     file_path: Path, components: dict, dry_run: bool = False
 ) -> bool:
     """Update MAJOR, MINOR, PATCH, PHASE, PRE_RELEASE_NUM in version file."""
+    kind = source_kind(file_path)
+    if kind == "plain":
+        return _write_plain_components(file_path, components, dry_run)
+    if kind == "c-header":
+        return _write_header_components(file_path, components, dry_run)
     content = file_path.read_text(encoding="utf-8")
     original = content
 
@@ -574,6 +689,31 @@ def update_changelog_links(
     link_pattern = rf"^\[{re.escape(human_ver)}\]:.*$"
     link_match = re.search(link_pattern, content, re.MULTILINE)
 
+    unreleased_pattern = r"^\[Unreleased\]:.*$"
+    if not link_match and check_changelog_header(root, human_ver):
+        # A new version with its heading written and no link yet: add one
+        # after [Unreleased], comparing from the tag the old [Unreleased]
+        # link started at (the previous release). With no previous tag it is
+        # the first release.
+        unreleased_match = re.search(unreleased_pattern, content, re.MULTILINE)
+        prev = None
+        if unreleased_match:
+            prev_match = re.search(r"compare/(.+?)\.\.\.HEAD", unreleased_match.group(0))
+            prev = prev_match.group(1) if prev_match else None
+        if prev and prev != tag:
+            new_link = f"[{human_ver}]: {REPO_URL}/compare/{prev}...{tag}"
+        else:
+            new_link = f"[{human_ver}]: {REPO_URL}/releases/tag/{tag}"
+        if unreleased_match:
+            content = (content[:unreleased_match.end()] + "\n" + new_link
+                       + content[unreleased_match.end():])
+        else:
+            first_link = re.search(r"^\[[\d.]+", content, re.MULTILINE)
+            if first_link:
+                content = content[:first_link.start()] + new_link + "\n" + content[first_link.start():]
+            else:
+                content = content.rstrip("\n") + "\n\n" + new_link + "\n"
+
     if link_match:
         # Link exists -- update it with correct tags
         old_line = link_match.group(0)
@@ -590,7 +730,6 @@ def update_changelog_links(
             content = content.replace(old_line, new_line)
 
     # Update [Unreleased] link to point from current tag to HEAD
-    unreleased_pattern = r"^\[Unreleased\]:.*$"
     unreleased_match = re.search(unreleased_pattern, content, re.MULTILINE)
     unreleased_line = f"[Unreleased]: {REPO_URL}/compare/{tag}...HEAD"
 
@@ -837,6 +976,11 @@ def main():
 
     quiet = args.auto
 
+    if str(VERSIONING).lower() == "off":
+        if not quiet:
+            print('versioning is off for this project (versioning = "off"); nothing to sync')
+        return 0
+
     try:
         root = find_project_root()
     except FileNotFoundError as e:
@@ -964,9 +1108,23 @@ def main():
             if not quiet:
                 print(f"  [OK] {VERSION_SOURCE}: components {action}")
             files_updated.append(VERSION_SOURCE)
+        # A flag that could not land is said, never swallowed: --pre-num on a
+        # source with no PRE_RELEASE_NUM line (any kind) used to exit 0 and
+        # change nothing. The value is read back from the file to decide.
+        if args.pre_num is not None and not args.dry_run:
+            stored = read_version_components(root / VERSION_SOURCE)["pre_release_num"]
+            if stored != args.pre_num:
+                hint = {
+                    "python": "add a line `PRE_RELEASE_NUM = 1` to it",
+                    "c-header": "add `#define <PREFIX>_VERSION_PRE_RELEASE_NUM 1` to it",
+                    "plain": "a one-line VERSION file holds no pre-release number; use a _version.py or a C header for that",
+                }[source_kind(VERSION_SOURCE)]
+                print(f"Warning: --pre-num {args.pre_num} not stored: {VERSION_SOURCE} has no "
+                      f"PRE_RELEASE_NUM; {hint}", file=sys.stderr)
 
-    # --- Sync __version__ string with git metadata ---
-    if not args.no_git_ver:
+    # --- Sync __version__ string with git metadata (Python sources only; a
+    # plain VERSION or a C header carries no stamp) ---
+    if not args.no_git_ver and source_kind(VERSION_SOURCE) == "python":
         git_info = get_git_info(root, auto_mode=args.auto)
         new_ver_string = build_version_string(components, git_info)
 

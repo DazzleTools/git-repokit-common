@@ -1,0 +1,419 @@
+redgreen G1 at 50beaa9 (tree dirty: slice uncommitted) -- 2026-10-09__07-05-16
+python 3.12.0
+
+=== M1 vendored-skip off (repokit_config.py) :: tests/test_repokit_config.py -k vendored or submodule_copys or as_the_project
+
+no tests ran in 0.00s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+ERROR: file or directory not found: or
+
+
+
+=== M2 detection off (repokit_config.py) :: tests/test_repokit_config.py -k detected_from_root or setting_wins
+
+no tests ran in 0.00s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+ERROR: file or directory not found: or
+
+
+
+=== M3 setting ignored (repokit_config.py) :: tests/test_repokit_config.py::test_languages_setting_wins_detection_is_next_and_python_is_the_default tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning
+FF                                                                       [100%]
+================================== FAILURES ===================================
+___ test_languages_setting_wins_detection_is_next_and_python_is_the_default ___
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12812/test_languages_setting_wins_de0')
+capsys = <_pytest.capture.CaptureFixture object at 0x000001EFA1A00FB0>
+
+    def test_languages_setting_wins_detection_is_next_and_python_is_the_default(tmp_path, capsys):
+        """CONSEQUENCE: 8 (behaviour) -- AC2's pin: a project that sets nothing and shows nothing
+        answers python, so every existing consumer behaves as before; the setting overrides
+        detection; --shell always carries a value for `languages`."""
+        assert RC.languages({}, tmp_path) == ["python"]
+        _w(tmp_path / "CMakeLists.txt")
+        assert RC.languages({}, tmp_path) == ["c-cpp"]
+>       assert RC.languages({"languages": ["rust"]}, tmp_path) == ["rust"]
+E       AssertionError: assert ['c-cpp'] == ['rust']
+E         
+E         At index 0 diff: 'c-cpp' != 'rust'
+E         Use -v to get more diff
+
+tests\test_repokit_config.py:299: AssertionError
+_ test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning __
+
+repo = (WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12812/test_a_typescript_project_gets0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12812/test_a_typescript_project_gets0/remote.git'))
+
+    def test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning(repo):
+        """CONSEQUENCE: 8 (behaviour) -- AC3: languages = ["typescript"]: a
+        debugger statement blocks the push; the Python package warning is gone even
+        though a pyproject.toml with [project] is present; and once the statement
+        is removed the push goes through."""
+        cfg = {".repokit-common.toml": '[tool.repokit-common]\nlanguages = ["typescript"]\n',
+               "pyproject.toml": '[project]\nname = "tooling"\n', "tests/test_a.py": PASSING}
+        r, out, landed = _push(repo, {**cfg, "src/index.ts": "export const x = 1;\n  debugger;\n"})
+>       assert r.returncode != 0 and not landed
+E       AssertionError: assert (0 != 0)
+E        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...ements...\n[OK] No debugger statements found\n\n[OK] Pre-push validation complete\nReady to push to main\n', stderr='').returncode
+
+tests\test_pre_push_hook.py:174: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_repokit_config.py::test_languages_setting_wins_detection_is_next_and_python_is_the_default
+FAILED tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning
+2 failed in 4.15s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M4 every source is python (sync-versions.py) :: tests/test_sync_versions_sources.py
+FFFF..FF                                                                 [100%]
+================================== FAILURES ===================================
+______________ test_a_header_bump_changes_only_the_version_text _______________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12813/test_a_header_bump_changes_onl0')
+
+    def test_a_header_bump_changes_only_the_version_text(tmp_path):
+        """CONSEQUENCE: 9 (safety) -- the anchor for the C/C++ layer: a bump of a
+        version.h rewrites the four version defines and not one other byte -- the
+        BOM, the CRLF endings and a non-UTF-8 byte in a comment all survive."""
+        root = _project(tmp_path, HEADER_CFG, {"include/my_tool/version.h": HEADER})
+        r = _run(root, "--bump", "minor")
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_header_bump_changes_onl0\proj\scripts\sync-versions.py", line 1237, in <module>
+E             sys.exit(main())
+E                      ^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_header_bump_changes_onl0\proj\scripts\sync-versions.py", line 978, in main
+E             components = read_version_components(root / VERSION_SOURCE)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_header_bump_changes_onl0\proj\scripts\sync-versions.py", line 297, in read_version_components
+E             content = file_path.read_text(encoding="utf-8")
+E                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Python312\Lib\pathlib.py", line 1029, in read_text
+E             return f.read()
+E                    ^^^^^^^^
+E           File "<frozen codecs>", line 322, in decode
+E         UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 60: invalid continuation byte
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--bump', 'minor'], returncode=1, stdo...2, in decode\nUnicodeDecodeError: \'utf-8\' codec can\'t decode byte 0xe9 in position 60: invalid continuation byte\n').returncode
+
+tests\test_sync_versions_sources.py:89: AssertionError
+_______________ test_a_header_set_and_phase_write_every_define ________________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12813/test_a_header_set_and_phase_wr0')
+
+    def test_a_header_set_and_phase_write_every_define(tmp_path):
+        """CONSEQUENCE: 7 (behaviour) -- --set and --phase reach MAJOR, MINOR,
+        PATCH, PHASE and STRING; the human form carries the phase."""
+        root = _project(tmp_path, HEADER_CFG, {"include/my_tool/version.h": HEADER})
+        r = _run(root, "--set", "1.2.3", "--phase", "beta", "--force")
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_header_set_and_phase_wr0\proj\scripts\sync-versions.py", line 1237, in <module>
+E             sys.exit(main())
+E                      ^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_header_set_and_phase_wr0\proj\scripts\sync-versions.py", line 978, in main
+E             components = read_version_components(root / VERSION_SOURCE)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_header_set_and_phase_wr0\proj\scripts\sync-versions.py", line 297, in read_version_components
+E             content = file_path.read_text(encoding="utf-8")
+E                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Python312\Lib\pathlib.py", line 1029, in read_text
+E             return f.read()
+E                    ^^^^^^^^
+E           File "<frozen codecs>", line 322, in decode
+E         UnicodeDecodeError: 'utf-8' codec can't decode byte 0xe9 in position 60: invalid continuation byte
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--set', '1.2.3', '--phase', 'beta', '...2, in decode\nUnicodeDecodeError: \'utf-8\' codec can\'t decode byte 0xe9 in position 60: invalid continuation byte\n').returncode
+
+tests\test_sync_versions_sources.py:102: AssertionError
+________ test_a_plain_version_file_is_bumped_and_checked_with_no_stamp ________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12813/test_a_plain_version_file_is_b0')
+
+    def test_a_plain_version_file_is_bumped_and_checked_with_no_stamp(tmp_path):
+        """CONSEQUENCE: 8 (behaviour) -- AC4: repokit-common's own shape. A bump
+        rewrites x.y.z, --check passes afterwards, and nothing is said about a
+        __version__ string, because the file has none."""
+        root = _project(tmp_path, PLAIN, {"VERSION": "0.3.6\n"})
+        r = _run(root, "--bump", "patch")
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_version_file_is_b0\proj\scripts\sync-versions.py", line 1237, in <module>
+E             sys.exit(main())
+E                      ^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_version_file_is_b0\proj\scripts\sync-versions.py", line 978, in main
+E             components = read_version_components(root / VERSION_SOURCE)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_version_file_is_b0\proj\scripts\sync-versions.py", line 304, in read_version_components
+E             raise ValueError(f"Could not parse MAJOR, MINOR, PATCH from {file_path}")
+E         ValueError: Could not parse MAJOR, MINOR, PATCH from C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_version_file_is_b0\proj\VERSION
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--bump', 'patch'], returncode=1, stdo...ers\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-12813\\test_a_plain_version_file_is_b0\\proj\\VERSION\n').returncode
+
+tests\test_sync_versions_sources.py:117: AssertionError
+_____ test_a_plain_file_keeps_its_bom_and_line_ending_and_carries_a_phase _____
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12813/test_a_plain_file_keeps_its_bo0')
+
+    def test_a_plain_file_keeps_its_bom_and_line_ending_and_carries_a_phase(tmp_path):
+        """CONSEQUENCE: 6 (behaviour) -- the bytes around the version are kept;
+        x.y.z-phase reads and writes."""
+        root = _project(tmp_path, PLAIN, {"VERSION": b"\xef\xbb\xbf0.3.6-alpha\r\n"})
+        r = _run(root, "--bump", "minor")
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_file_keeps_its_bo0\proj\scripts\sync-versions.py", line 1237, in <module>
+E             sys.exit(main())
+E                      ^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_file_keeps_its_bo0\proj\scripts\sync-versions.py", line 978, in main
+E             components = read_version_components(root / VERSION_SOURCE)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_file_keeps_its_bo0\proj\scripts\sync-versions.py", line 304, in read_version_components
+E             raise ValueError(f"Could not parse MAJOR, MINOR, PATCH from {file_path}")
+E         ValueError: Could not parse MAJOR, MINOR, PATCH from C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_plain_file_keeps_its_bo0\proj\VERSION
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--bump', 'minor'], returncode=1, stdo...ers\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-12813\\test_a_plain_file_keeps_its_bo0\\proj\\VERSION\n').returncode
+
+tests\test_sync_versions_sources.py:129: AssertionError
+___________ test_a_new_version_with_a_heading_gets_its_compare_link ___________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12813/test_a_new_version_with_a_head0')
+
+    def test_a_new_version_with_a_heading_gets_its_compare_link(tmp_path):
+        """CONSEQUENCE: 7 (behaviour) -- AC5: a heading ## [0.3.7] with no link
+        gets [0.3.7]: .../compare/v0.3.6...v0.3.7 right after [Unreleased], whose
+        own link moves on to v0.3.7...HEAD; the older links are untouched."""
+        root = _project(tmp_path, PLAIN, {"VERSION": "0.3.7\n", "CHANGELOG.md": CHANGELOG})
+        r = _run(root)
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_new_version_with_a_head0\proj\scripts\sync-versions.py", line 1237, in <module>
+E             sys.exit(main())
+E                      ^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_new_version_with_a_head0\proj\scripts\sync-versions.py", line 978, in main
+E             components = read_version_components(root / VERSION_SOURCE)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_new_version_with_a_head0\proj\scripts\sync-versions.py", line 304, in read_version_components
+E             raise ValueError(f"Could not parse MAJOR, MINOR, PATCH from {file_path}")
+E         ValueError: Could not parse MAJOR, MINOR, PATCH from C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_a_new_version_with_a_head0\proj\VERSION
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py'], returncode=1, stdout='', stderr='Trac...ers\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-12813\\test_a_new_version_with_a_head0\\proj\\VERSION\n').returncode
+
+tests\test_sync_versions_sources.py:166: AssertionError
+____________ test_no_link_is_added_for_a_version_without_a_heading ____________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12813/test_no_link_is_added_for_a_ve0')
+
+    def test_no_link_is_added_for_a_version_without_a_heading(tmp_path):
+        """CONSEQUENCE: 6 (behaviour) -- a bump before the entry is written adds
+        no dangling link; the missing heading is reported as before."""
+        root = _project(tmp_path, PLAIN, {"VERSION": "0.3.6\n", "CHANGELOG.md": CHANGELOG.replace("## [0.3.7] - 2026-10-09\n\n### Added\n- a thing\n\n", "")})
+        r = _run(root, "--bump", "patch")
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Traceback (most recent call last):
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_no_link_is_added_for_a_ve0\proj\scripts\sync-versions.py", line 1237, in <module>
+E             sys.exit(main())
+E                      ^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_no_link_is_added_for_a_ve0\proj\scripts\sync-versions.py", line 978, in main
+E             components = read_version_components(root / VERSION_SOURCE)
+E                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           File "C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_no_link_is_added_for_a_ve0\proj\scripts\sync-versions.py", line 304, in read_version_components
+E             raise ValueError(f"Could not parse MAJOR, MINOR, PATCH from {file_path}")
+E         ValueError: Could not parse MAJOR, MINOR, PATCH from C:\Users\Extreme\AppData\Local\Temp\pytest-of-Extreme\pytest-12813\test_no_link_is_added_for_a_ve0\proj\VERSION
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--bump', 'patch'], returncode=1, stdo...ers\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-12813\\test_no_link_is_added_for_a_ve0\\proj\\VERSION\n').returncode
+
+tests\test_sync_versions_sources.py:181: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_sync_versions_sources.py::test_a_header_bump_changes_only_the_version_text
+FAILED tests/test_sync_versions_sources.py::test_a_header_set_and_phase_write_every_define
+FAILED tests/test_sync_versions_sources.py::test_a_plain_version_file_is_bumped_and_checked_with_no_stamp
+FAILED tests/test_sync_versions_sources.py::test_a_plain_file_keeps_its_bom_and_line_ending_and_carries_a_phase
+FAILED tests/test_sync_versions_sources.py::test_a_new_version_with_a_heading_gets_its_compare_link
+FAILED tests/test_sync_versions_sources.py::test_no_link_is_added_for_a_version_without_a_heading
+6 failed, 2 passed in 4.67s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M5 header re-encoded as UTF-8 (sync-versions.py) :: tests/test_sync_versions_sources.py -k header_bump
+F                                                                        [100%]
+================================== FAILURES ===================================
+______________ test_a_header_bump_changes_only_the_version_text _______________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12814/test_a_header_bump_changes_onl0')
+
+    def test_a_header_bump_changes_only_the_version_text(tmp_path):
+        """CONSEQUENCE: 9 (safety) -- the anchor for the C/C++ layer: a bump of a
+        version.h rewrites the four version defines and not one other byte -- the
+        BOM, the CRLF endings and a non-UTF-8 byte in a comment all survive."""
+        root = _project(tmp_path, HEADER_CFG, {"include/my_tool/version.h": HEADER})
+        r = _run(root, "--bump", "minor")
+        assert r.returncode == 0, r.stdout + r.stderr
+        got = (root / "include/my_tool/version.h").read_bytes()
+        expected = (HEADER.replace(b"_VERSION_MINOR 1", b"_VERSION_MINOR 2")
+                          .replace(b'_VERSION_STRING "0.1.0"', b'_VERSION_STRING "0.2.0"'))
+>       assert got == expected
+E       AssertionError: assert b'\xc3\xaf\xc...r\n#endif\r\n' == b'\xef\xbb\xb...r\n#endif\r\n'
+E         
+E         At index 0 diff: b'\xc3' != b'\xef'
+E         Use -v to get more diff
+
+tests\test_sync_versions_sources.py:93: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_sync_versions_sources.py::test_a_header_bump_changes_only_the_version_text
+1 failed, 7 deselected in 0.74s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M6 versioning off ignored (tool) (sync-versions.py) :: tests/test_sync_versions_sources.py -k versioning_off
+F                                                                        [100%]
+================================== FAILURES ===================================
+________________ test_versioning_off_does_nothing_and_exits_0 _________________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12815/test_versioning_off_does_nothi0')
+
+    def test_versioning_off_does_nothing_and_exits_0(tmp_path):
+        """CONSEQUENCE: 8 (behaviour) -- a project with no version source sets
+        versioning = "off": --check passes, --auto is silent, nothing is looked for
+        (git-repokit's own per-commit warning goes away with this)."""
+        root = _project(tmp_path, 'versioning = "off"\n', {"README.md": "x\n"})
+        auto = _run(root, "--auto")
+>       assert auto.returncode == 0 and auto.stdout.strip() == "" and auto.stderr.strip() == ""
+E       AssertionError: assert (1 == 0)
+E        +  where 1 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--auto'], returncode=1, stdout='', stderr='Error: Cannot find $PACKAGE_NAME/_version.py. Run from project root.\n').returncode
+
+tests\test_sync_versions_sources.py:153: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_sync_versions_sources.py::test_versioning_off_does_nothing_and_exits_0
+1 failed, 7 deselected in 0.86s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M7 versioning off ignored (pre-commit) (hooks/pre-commit) :: tests/test_pre_commit_hook.py -k versioning_off
+.                                                                        [100%]
+1 passed, 37 deselected in 4.95s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M8 A6 link never added (sync-versions.py) :: tests/test_sync_versions_sources.py -k compare_link or without_a_heading
+
+no tests ran in 0.00s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+ERROR: file or directory not found: or
+
+
+
+=== M9 stamp never recognised (update-common.sh) :: tests/test_update_common.py
+F...                                                                     [100%]
+================================== FAILURES ===================================
+____ test_a_tree_dirty_by_only_the_stamp_is_pulled_and_the_stamp_restored _____
+
+world = (WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12817/test_a_tree_dirty_by_only_the_0/consu...owsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12817/test_a_tree_dirty_by_only_the_0/upstream'))
+
+    def test_a_tree_dirty_by_only_the_stamp_is_pulled_and_the_stamp_restored(world):
+        """CONSEQUENCE: 9 (safety) -- AC6: the common case. Only the __version__
+        line differs; the pull goes through, the upstream change arrives, a backup
+        was saved first, and the version file is re-stamped (not left at HEAD's
+        stale stamp, and not lost)."""
+        c, up = world
+        _stamp(c)
+        r = _update(c)
+>       assert r.returncode == 0, r.stdout + r.stderr
+E       AssertionError: Refusing to pull: the working tree has changes other than the version stamp:
+E              M mypkg/_version.py
+E         Commit or stash them, then run again. Nothing was touched.
+E         
+E       assert 1 == 0
+E        +  where 1 = CompletedProcess(args=['C:\\Program Files\\Git\\usr\\bin\\bash.EXE', 'scripts/repokit-common/update-common.sh'], retur...the version stamp:\n     M mypkg/_version.py\nCommit or stash them, then run again. Nothing was touched.\n', stderr='').returncode
+
+tests\test_update_common.py:105: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_update_common.py::test_a_tree_dirty_by_only_the_stamp_is_pulled_and_the_stamp_restored
+1 failed, 3 passed in 15.02s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M10 old prefix computation (update-common.sh) :: tests/test_update_common.py -k clean_tree or only_the_stamp
+
+no tests ran in 0.00s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+ERROR: file or directory not found: or
+
+
+
+=== M11 python profile skips pdb (hooks/pre-push) :: tests/test_pre_push_hook.py -k python_profile_runs_as_before
+F                                                                        [100%]
+================================== FAILURES ===================================
+___________ test_the_python_profile_runs_as_before_with_no_setting ____________
+
+repo = (WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12818/test_the_python_profile_runs_a0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12818/test_the_python_profile_runs_a0/remote.git'))
+
+    def test_the_python_profile_runs_as_before_with_no_setting(repo):
+        """CONSEQUENCE: 8 (safety) -- AC2: a Python package that sets nothing is
+        detected as python and gets exactly the old checks: a pdb statement blocks
+        the push, named as the python profile's."""
+        r, out, landed = _push(repo, {"pyproject.toml": '[project]\nname = "p"\n',
+                                      "mypkg/__init__.py": "import pdb\n",
+                                      "tests/test_a.py": PASSING})
+>       assert r.returncode != 0 and not landed
+E       AssertionError: assert (0 != 0)
+E        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...ements...\n[OK] No debugger statements found\n\n[OK] Pre-push validation complete\nReady to push to main\n', stderr='').returncode
+
+tests\test_pre_push_hook.py:161: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting
+1 failed, 33 deselected in 3.42s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== tree check
+porcelain unchanged

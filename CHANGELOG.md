@@ -8,6 +8,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-09
+
+> **For consuming projects:** nothing to change. A project that sets none of the new keys behaves exactly as before: its language is detected as Python when nothing else shows, the Python checks are unchanged, and a Python `_version.py` is handled as it always was. The one visible change is in `update-common.sh`, which now pulls through a tree dirty by only the version stamp instead of refusing it.
+
+### Added
+- **`languages` setting, with detection and per-language product checks in the pre-push hook.** `languages = ["typescript"]` (or `c-cpp`, `csharp`, `javascript`, `python`, several at once) names the product's languages; unset, they are detected from the root markers, and a project that shows nothing is Python. The hook runs each language's profile: Python's is the package detection, `pdb` scan and `print()` count exactly as before; TypeScript and JavaScript get `debugger;` (error) and `console.log()` (warning, off with `print-warning = false`); C# gets `Debugger.Break()` and `Console.WriteLine()`; C/C++ has no product checks. The Python package warning no longer appears in a project whose languages do not include Python. `repokit_config.py --get languages` and `--shell languages` always answer with a value.
+- **Version sources beyond `_version.py`.** `version-source` may name a plain `VERSION` file holding `x.y.z[-phase]`, or a C/C++ header of `#define ..._VERSION_MAJOR/MINOR/PATCH/PHASE/STRING` lines. Both are edited on their bytes (BOM, line endings and non-UTF-8 bytes kept) and carry no `__version__` stamp, so `post-commit` leaves them alone. The header may also carry `..._VERSION_PRE_RELEASE_NUM` (written by `--pre-num`) and `..._PROJECT_PHASE` (read-only), the same optional fields a `_version.py` has. repokit-common now versions itself this way, from its own `VERSION`, through a `.repokit-common.toml` at its root.
+- **`--pre-num` is never swallowed.** On a source with no `PRE_RELEASE_NUM` line or define (a `_version.py` without the line, a header without the define, a one-line `VERSION` file) it used to exit 0 and change nothing, for every kind; it now warns, naming the kind's own fix, and leaves the file untouched.
+- **`versioning = "off"`** for a project with no version source: `sync-versions.py` does nothing and exits 0, and the commit hooks say nothing about versions (before, every commit in such a project warned "Cannot find $PACKAGE_NAME/_version.py").
+- **A new version's compare link.** When a `## [x.y.z]` heading exists and has no link, `sync-versions.py` adds `[x.y.z]: .../compare/vPREV...vX.Y.Z` after `[Unreleased]`, comparing from the tag the old `[Unreleased]` link started at.
+- **`update-common.sh` pulls around the version stamp.** A tree whose only change is the version source's `__version__` line (what the pre-commit hook writes) no longer stops the pull: a snapshot is saved (`dz git-snapshot` when available, else a copy in the git directory), the file is restored from HEAD, the subtree is pulled, and the file is re-stamped. Any other uncommitted change is refused by name and nothing is touched.
+
+### Fixed
+- **A vendored copy's own `.repokit-common.toml` is never read as the consumer's settings.** With repokit-common now carrying that file, every subtree copy carries it too; `repokit_config.py` steps over it unless repokit-common is the project itself (its directory is the repository root). The consumer's `pyproject.toml` or root `.repokit-common.toml` is found as before, and a consumer with no settings gets none.
+- **`update-common.sh` on Windows computed the subtree prefix as an absolute path** (git prints the repository root as `C:/...`, the shell as `/c/...`), so `git subtree pull` reported the prefix as never added. The prefix now comes from `git rev-parse --show-prefix`.
+- **`post-commit` claimed "Version updated" when nothing was stamped.** It now says so only when the tool reports an update.
+
 ## [0.3.6] - 2026-10-08
 
 > **For consuming projects:** nothing to change. Without the new setting, the private branches are the same as before.
@@ -352,7 +369,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.6...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.4...v0.3.5
 [0.3.4]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.3...v0.3.4

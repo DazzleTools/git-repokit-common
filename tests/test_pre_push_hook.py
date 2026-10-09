@@ -151,6 +151,48 @@ def test_the_print_count_ignores_the_vendored_copy_and_tests(repo):
     assert "print() statements" not in out
 
 
+def test_the_python_profile_runs_as_before_with_no_setting(repo):
+    """CONSEQUENCE: 8 (safety) -- AC2: a Python package that sets nothing is
+    detected as python and gets exactly the old checks: a pdb statement blocks
+    the push, named as the python profile's."""
+    r, out, landed = _push(repo, {"pyproject.toml": '[project]\nname = "p"\n',
+                                  "mypkg/__init__.py": "import pdb\n",
+                                  "tests/test_a.py": PASSING})
+    assert r.returncode != 0 and not landed
+    assert "Product languages: python" in out
+    assert "Debugger statements found (python)" in out and "pdb statements" in out
+
+
+def test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning(repo):
+    """CONSEQUENCE: 8 (behaviour) -- AC3: languages = ["typescript"]: a
+    debugger statement blocks the push; the Python package warning is gone even
+    though a pyproject.toml with [project] is present; and once the statement
+    is removed the push goes through."""
+    cfg = {".repokit-common.toml": '[tool.repokit-common]\nlanguages = ["typescript"]\n',
+           "pyproject.toml": '[project]\nname = "tooling"\n', "tests/test_a.py": PASSING}
+    r, out, landed = _push(repo, {**cfg, "src/index.ts": "export const x = 1;\n  debugger;\n"})
+    assert r.returncode != 0 and not landed
+    assert "Product languages: typescript" in out
+    assert "Debugger statements found (typescript)" in out
+    assert "No Python package directory" not in out
+    r, out, landed = _push(repo, {"src/index.ts": "export const x = 1;\n"})
+    assert r.returncode == 0 and landed, out
+    assert "No Python package directory" not in out and "pdb" not in out
+
+
+def test_a_c_cpp_project_is_detected_and_runs_no_product_checks(repo):
+    """CONSEQUENCE: 7 (behaviour) -- a CMake project with no setting is detected
+    as c-cpp: the Python checks (pdb, print count) do not run on its tooling
+    scripts, the syntax check and tests still do."""
+    noisy = "import pdb\n" + "".join(f"print({i})\n" for i in range(25))
+    r, out, landed = _push(repo, {"CMakeLists.txt": "project(demo)\n", "tools/gen.py": noisy,
+                                  "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "Product languages: c-cpp" in out and "c-cpp: no product checks" in out
+    assert "Debugger statements found" not in out and "print() statements" not in out
+    assert "Python syntax check passed" in out
+
+
 def test_a_push_git_rejected_says_nothing_to_push(repo):
     """CONSEQUENCE: 3 (behaviour) -- when git passes no refs (it rejected them all), the hook says so instead of calling it a tag-only push."""
     root, hooks, remote = repo

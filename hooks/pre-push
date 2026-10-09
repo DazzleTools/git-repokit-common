@@ -24,7 +24,13 @@
 #
 #   test-command   replaces pytest: run with `sh -c` from the repository root;
 #                  a non-zero exit counts as failing tests
-#   print-warning  false turns off the print() count warning
+#   print-warning  false turns off the print() / console.log count warning
+#   languages      the product's languages (a list); unset, detected from the
+#                  root markers, and python when nothing shows. Each language's
+#                  PROFILE runs its own product checks below: python's are the
+#                  package detection, pdb scan and print() count exactly as
+#                  before the setting existed. The tooling layer -- the Python
+#                  syntax check and the test run -- runs in every project.
 #
 # With no settings, tests run as `python -P -m pytest`: the project's own
 # pytest `testpaths` when it declares them, otherwise tests/ without
@@ -51,8 +57,14 @@ cd "$REPO_ROOT" 2>/dev/null || true
 # style every message below uses. A failure is reported further down, at the
 # point the push is validated.
 _rk_settings_ok=true
-rk_read_settings test-command print-warning strict-branches output || _rk_settings_ok=false
+rk_read_settings test-command print-warning strict-branches output languages || _rk_settings_ok=false
 rk_setup_output
+# languages always arrives with a value (the setting, detection, or python);
+# only an unreadable settings file leaves it empty, and that stops the push below.
+_rk_has_lang() {
+    for _rk_l in $REPOKIT_LANGUAGES; do [ "$_rk_l" = "$1" ] && return 0; done
+    return 1
+}
 
 # =============================================================================
 # CAPTURE PUSHED REFS (read stdin once, iterate multiple times below)
@@ -117,9 +129,11 @@ if $PUSHING_TAGS_ONLY; then
     exit 0
 fi
 
-# Auto-detect the Python package directory
+# Auto-detect the Python package directory (the python profile; a project
+# whose languages do not include python checks every .py file from the root)
 # Looks for a directory containing __init__.py at the project root or under src/
 PACKAGE_DIR=""
+if _rk_has_lang python; then
 for dir in */; do
     if [ -f "${dir}__init__.py" ]; then
         PACKAGE_DIR="${dir%/}"
@@ -136,8 +150,9 @@ if [ -z "$PACKAGE_DIR" ] && [ -d "src" ]; then
         fi
     done
 fi
+fi
 
-if [ -z "$PACKAGE_DIR" ]; then
+if [ -z "$PACKAGE_DIR" ] && _rk_has_lang python; then
     # Warn only a project that declares itself a Python package; there a
     # missing __init__.py is worth saying. A TypeScript, C or Rust project
     # whose Python is only tooling would get it on every push, which teaches
@@ -148,8 +163,8 @@ if [ -z "$PACKAGE_DIR" ]; then
         echo -e "${YELLOW}Warning: No Python package directory found (no __init__.py)${NC}"
         echo "Skipping package-specific checks"
     fi
-    PACKAGE_DIR="."
 fi
+[ -z "$PACKAGE_DIR" ] && PACKAGE_DIR="."
 
 # =============================================================================
 # PROJECT SETTINGS (read at the top). A settings file that exists but cannot
@@ -170,6 +185,7 @@ fi
 GATED=false
 rk_is_strict_branch "$CURRENT_BRANCH" && GATED=true
 echo -e "${BLUE}${RK_INFO} Pre-push validation for branch: $CURRENT_BRANCH${NC}"
+echo "  Product languages: $(printf '%s ' $REPOKIT_LANGUAGES | sed 's/ $//')"
 echo ""
 
 # =============================================================================
@@ -289,32 +305,66 @@ else
 fi
 
 # =============================================================================
-# CHECK FOR DEBUG STATEMENTS
+# PRODUCT CHECKS, ONE PROFILE PER LANGUAGE
+# Every profile has the same two checks: debugger statements (an error) and
+# print-style noise (a warning, off with print-warning = false). The project's
+# own code only: never tests, never the vendored repokit-common copy (a fresh
+# consumer with no package directory once saw "257 in ./", almost all of them
+# repokit-common's own), never dependency folders.
 # =============================================================================
 echo ""
 echo -e "${BLUE}Checking for debug statements...${NC}"
 
-# Check for pdb statements
-if grep -r "import pdb\|pdb\.set_trace()" $PACKAGE_DIR/ --include="*.py" 2>/dev/null; then
-    echo -e "${RED}${RK_FAIL} ERROR: Debugger statements found${NC}"
-    echo "Remove all pdb statements before pushing"
-    exit 1
-fi
+_rk_excl=(--exclude-dir=tests --exclude-dir=.git --exclude-dir=node_modules --exclude-dir=dist
+          --exclude-dir=build --exclude-dir=bin --exclude-dir=obj --exclude-dir=.venv --exclude-dir=venv)
+[ -n "$VENDORED_DIR" ] && _rk_excl+=(--exclude-dir="$(basename "$VENDORED_DIR")")
 
-# Check for excessive print statements (warning only; print-warning = false
-# turns it off for projects whose output is print() by design, such as CLIs)
-if [ "$REPOKIT_PRINT_WARNING" != "false" ]; then
-    # The project's own code only: never tests, and never the vendored
-    # repokit-common copy (a fresh consumer with no package directory once saw
-    # "257 in ./", almost all of them repokit-common's own).
-    _rk_excl=(--exclude-dir=tests --exclude-dir=.git)
-    [ -n "$VENDORED_DIR" ] && _rk_excl+=(--exclude-dir="$(basename "$VENDORED_DIR")")
-    print_count=$(grep -r "print(" "$PACKAGE_DIR/" --include="*.py" "${_rk_excl[@]}" 2>/dev/null | grep -v "#.*print(" | wc -l)
-    if [ "$print_count" -gt 20 ]; then
-        echo -e "${YELLOW}${RK_WARN}${NC} Warning: Many print() statements found ($print_count in $PACKAGE_DIR/)"
+# _rk_debug_check LANGUAGE DEBUGGER-PATTERN REMOVE-HINT INCLUDES...
+_rk_debug_check() {
+    _rk_lang="$1"; _rk_pat="$2"; _rk_hint="$3"; shift 3
+    if grep -rE "$_rk_pat" "$PACKAGE_DIR/" "$@" "${_rk_excl[@]}" 2>/dev/null; then
+        echo -e "${RED}${RK_FAIL} ERROR: Debugger statements found ($_rk_lang)${NC}"
+        echo "Remove all $_rk_hint before pushing"
+        exit 1
+    fi
+}
+
+# _rk_noise_check LANGUAGE CALL LABEL INCLUDES...
+_rk_noise_check() {
+    _rk_lang="$1"; _rk_call="$2"; _rk_label="$3"; shift 3
+    [ "$REPOKIT_PRINT_WARNING" = "false" ] && return 0
+    _rk_count=$(grep -rF "$_rk_call" "$PACKAGE_DIR/" "$@" "${_rk_excl[@]}" 2>/dev/null | grep -vE "(#|//).*$(printf '%s' "$_rk_call" | sed 's/[][().*^$\\/]/\\&/g')" | wc -l)
+    if [ "$_rk_count" -gt 20 ]; then
+        echo -e "${YELLOW}${RK_WARN}${NC} Warning: Many $_rk_label statements found ($_rk_count in $PACKAGE_DIR/)"
         echo "  Consider using logging instead, or set print-warning = false"
     fi
-fi
+}
+
+for _rk_lang in $REPOKIT_LANGUAGES; do
+    case "$_rk_lang" in
+        python)
+            # Exactly the checks every Python consumer had before profiles existed.
+            _rk_debug_check python "import pdb|pdb\.set_trace\(\)" "pdb statements" --include="*.py"
+            _rk_noise_check python "print(" "print()" --include="*.py"
+            ;;
+        typescript|javascript)
+            _rk_debug_check "$_rk_lang" "^[[:space:]]*debugger;?[[:space:]]*$" "debugger statements" \
+                --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.mjs" --include="*.cjs"
+            _rk_noise_check "$_rk_lang" "console.log(" "console.log()" \
+                --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.mjs" --include="*.cjs"
+            ;;
+        csharp)
+            _rk_debug_check csharp "Debugger\.Break\(\)" "Debugger.Break() calls" --include="*.cs"
+            _rk_noise_check csharp "Console.WriteLine(" "Console.WriteLine()" --include="*.cs"
+            ;;
+        c-cpp)
+            echo "  c-cpp: no product checks (the build and tests are the gate)"
+            ;;
+        *)
+            echo "  $_rk_lang: no product checks for this language yet"
+            ;;
+    esac
+done
 
 echo -e "${GREEN}${RK_OK}${NC} No debugger statements found"
 

@@ -14,15 +14,22 @@ if [ ! -f "$_rk_lib" ]; then
 fi
 . "$_rk_lib"
 rk_locate
-rk_read_settings output || true   # only the output style; a broken file is reported by pre-commit
+rk_read_settings output versioning || true   # a broken file is reported by pre-commit
 rk_setup_output
+
+# versioning = "off": no version source to refresh; say nothing.
+[ "${REPOKIT_VERSIONING:-on}" = "off" ] && exit 0
 
 # Refresh the version string with the new commit's hash. A failure is reported
 # with the tool's own words: the commit already exists, so this cannot block,
-# but it must never claim an update that did not happen.
+# but it must never claim an update that did not happen. A plain VERSION or a
+# C header carries no stamp: the tool then changes nothing and says so.
 if [ -n "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
     _rk_out="$(python "$SYNC_SCRIPT" 2>&1)"
     _rk_rc=$?
+    if [ $_rk_rc -eq 0 ] && ! printf '%s' "$_rk_out" | grep -q "updated"; then
+        exit 0   # nothing was stamped (a stampless source): nothing to report
+    fi
 elif [ -n "$UPDATE_SCRIPT" ]; then
     _rk_out="$("$UPDATE_SCRIPT" 2>&1)"
     _rk_rc=$?

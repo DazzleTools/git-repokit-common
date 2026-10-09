@@ -20,14 +20,18 @@ rk_locate
 # One settings call for the whole hook; its result is acted on at the
 # private-content check below. The output style is chosen from it now.
 _rk_settings_ok=true
-rk_read_settings private-patterns private-branches output version-source || _rk_settings_ok=false
+rk_read_settings private-patterns private-branches output version-source versioning || _rk_settings_ok=false
 rk_setup_output
 
 # PART 1: Update version.py
 # -------------------------
 # sync-versions.py is found by rk_locate: beside the vendored copy, else the
 # layouts consumers have used, else git's index (any mount point).
-if [ -n "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
+# versioning = "off" (a project with no version source) skips this part and
+# says nothing; the private-content check below still runs.
+if [ "${REPOKIT_VERSIONING:-on}" = "off" ]; then
+    :
+elif [ -n "$SYNC_SCRIPT" ] && command -v python >/dev/null 2>&1; then
     # Run in auto mode to update version before commit
     UPDATE_OUTPUT=$(python "$SYNC_SCRIPT" --auto 2>&1)
     UPDATE_EXIT=$?

@@ -32,6 +32,31 @@ __app_name__ = "my-project"
 **You edit:** `MAJOR`, `MINOR`, `PATCH`, `PHASE`, `PROJECT_PHASE`
 **Hooks update:** `__version__`, `PIP_VERSION`, `VERSION`, etc.
 
+### Other version sources: a plain `VERSION` file, a C/C++ header
+
+`version-source` may also name:
+
+- **a plain text file** (`VERSION`, `version.txt`: anything that is not `.py` or a header) holding one line, `x.y.z` or `x.y.z-phase`. This is repokit-common's own shape (`version-source = "VERSION"` in its `.repokit-common.toml`).
+- **a C/C++ header** (`.h`, `.hpp`, `.hh`, `.hxx`) of `#define` lines, as the C/C++ project template writes it:
+
+  ```c
+  #define MY_TOOL_VERSION_MAJOR 0
+  #define MY_TOOL_VERSION_MINOR 1
+  #define MY_TOOL_VERSION_PATCH 0
+  #define MY_TOOL_VERSION_PHASE ""
+  #define MY_TOOL_VERSION_STRING "0.1.0"
+  ```
+
+  Any prefix before `_VERSION_` works. `--bump`, `--set` and `--phase` rewrite the five defines; CMake, the `.rc` resource and the code read the header, so a bump never edits them. Two more defines are optional, mirroring the Python file's optional lines: `#define MY_TOOL_VERSION_PRE_RELEASE_NUM 1` (the PEP 440 counter behind `alpha`/`beta`; `--pre-num` writes it) and `#define MY_TOOL_PROJECT_PHASE "alpha"` (the project-wide maturity; read, shown by the program's `--version`, never written by the tool -- as `PROJECT_PHASE` in Python).
+
+**A flag that cannot land is said, not swallowed.** `--pre-num` on a source with no `PRE_RELEASE_NUM` line or define -- a `_version.py` without the line, a header without the define, or a plain `VERSION` file, which cannot hold one -- prints a warning naming the fix and exits 0 with the file untouched. Before 0.4.0 it exited 0 silently, for every kind.
+
+Both kinds are edited on their **bytes**: only the version text changes, and a BOM, the line endings and any non-UTF-8 byte elsewhere in the file are kept. Neither carries a `__version__` stamp, so the git-metadata step does nothing for them (a C project stamps at build time instead), and `post-commit` stays quiet.
+
+### `versioning = "off"`
+
+A project that keeps no version source at all sets `versioning = "off"`. Every run of the tool then does nothing and exits 0 (`--check` says so), and the pre-commit and post-commit hooks say nothing about versions.
+
 ### The `__version__` String Format
 
 ```

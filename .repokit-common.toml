@@ -1,0 +1,11 @@
+# repokit-common's own settings: it versions itself with its own tool, from the
+# plain VERSION file (no __version__ stamp). This file travels with every
+# vendored copy and is honoured only where repokit-common is the project
+# itself; a consumer's settings are its own pyproject.toml or
+# .repokit-common.toml (repokit_config.find_config steps over this one).
+[tool.repokit-common]
+version-source = "VERSION"
+changelog = "CHANGELOG.md"
+repo-url = "https://github.com/DazzleTools/git-repokit-common"
+tag-prefix = "v"
+tag-format = "human"

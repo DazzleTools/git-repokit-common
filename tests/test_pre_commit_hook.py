@@ -83,6 +83,32 @@ def _in_head(where, name):
     return _git(where, "ls-tree", "-r", "--name-only", "HEAD").stdout.split().count(name) == 1
 
 
+def _vendor_version_tools(root):
+    vendored = root / "scripts" / "repokit-common"
+    vendored.mkdir(parents=True, exist_ok=True)
+    for name in ("sync-versions.py", "repokit_config.py"):
+        shutil.copy(HOOK.parents[1] / name, vendored / name)
+    return vendored
+
+
+def test_versioning_off_commits_without_a_version_warning(repo):
+    """CONSEQUENCE: 7 (behaviour) -- a project that keeps no version source sets
+    versioning = "off" and its commits say nothing about versions; without the
+    setting the same project is warned on every commit (git-repokit's case)."""
+    root, hooks = repo
+    _vendor_version_tools(root)
+    (root / ".repokit-common.toml").write_text("[tool.repokit-common]\nprivate-patterns = []\n", encoding="utf-8")
+    _git(root, "add", "-A")
+    r = _git(root, "commit", "-q", "-m", "tools", hooks_dir=hooks, check=False)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "Version update failed" in r.stdout + r.stderr
+    (root / ".repokit-common.toml").write_text('[tool.repokit-common]\nprivate-patterns = []\nversioning = "off"\n', encoding="utf-8")
+    _git(root, "add", "-A")
+    r = _git(root, "commit", "-q", "-m", "off", hooks_dir=hooks, check=False)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "ersion" not in r.stdout + r.stderr
+
+
 def test_private_file_is_blocked_in_a_worktree(worktree):
     """CONSEQUENCE: 9 (safety) -- a private file cannot be committed to a public branch from a git worktree."""
     wt, hooks = worktree

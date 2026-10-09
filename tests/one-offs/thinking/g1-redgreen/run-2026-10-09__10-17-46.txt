@@ -1,0 +1,84 @@
+redgreen G1 at 50beaa9 (tree dirty: slice uncommitted) -- 2026-10-09__10-17-46
+python 3.12.0
+
+=== M12 header ignores PRE_RELEASE_NUM again (sync-versions.py) :: tests/test_sync_versions_sources.py -k round_trips
+F                                                                        [100%]
+================================== FAILURES ===================================
+______ test_a_header_with_pre_release_num_and_project_phase_round_trips _______
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12909/test_a_header_with_pre_release0')
+
+    def test_a_header_with_pre_release_num_and_project_phase_round_trips(tmp_path):
+        """CONSEQUENCE: 8 (behaviour) -- parity with _version.py: --pre-num lands in
+        the header's PRE_RELEASE_NUM define, --phase leaves PROJECT_PHASE alone
+        (read-only, as in Python), and -v reports the project phase it read.
+        Measured 2026-10-09 before the fix: the define was present and unread, and
+        --pre-num 2 exited 0 having changed nothing."""
+        root = _project(tmp_path, HEADER_CFG, {"include/my_tool/version.h": HEADER_FULL})
+        r = _run(root, "--pre-num", "2")
+>       assert r.returncode == 0 and "not stored" not in r.stderr, r.stdout + r.stderr
+E       AssertionError: Version: 0.1.0  (PEP 440: 0.1.0, tag: v0.1.0)
+E           [OK] include/my_tool/version.h: components updated
+E         
+E         Updated 1 file(s)
+E         Warning: --pre-num 2 not stored: include/my_tool/version.h has no PRE_RELEASE_NUM; add `#define <PREFIX>_VERSION_PRE_RELEASE_NUM 1` to it
+E         
+E       assert (0 == 0 and 'not stored' not in 'Warning: --...M 1` to it\n'
+E        +  where 0 = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--pre-num', '2'], returncode=0, stdou...ot stored: include/my_tool/version.h has no PRE_RELEASE_NUM; add `#define <PREFIX>_VERSION_PRE_RELEASE_NUM 1` to it\n').returncode
+E         
+E         'not stored' is contained here:
+E           Warning: --pre-num 2 not stored: include/my_tool/version.h has no PRE_RELEASE_NUM; add `#define <PREFIX>_VERSION_PRE_RELEASE_NUM 1` to it
+E         ?                      ++++++++++)
+
+tests\test_sync_versions_sources.py:122: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_sync_versions_sources.py::test_a_header_with_pre_release_num_and_project_phase_round_trips
+1 failed, 9 deselected in 0.41s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== M13 the --pre-num warning removed (sync-versions.py) :: tests/test_sync_versions_sources.py -k cannot_land
+F                                                                        [100%]
+================================== FAILURES ===================================
+____________ test_a_pre_num_that_cannot_land_is_said_not_swallowed ____________
+
+tmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-12910/test_a_pre_num_that_cannot_lan0')
+
+    def test_a_pre_num_that_cannot_land_is_said_not_swallowed(tmp_path):
+        """CONSEQUENCE: 8 (safety) -- a flag either lands or is reported: on a header
+        without the define, a plain VERSION file, or a _version.py without the line,
+        --pre-num used to exit 0 silently. The file is still untouched; the warning
+        names the kind's own fix."""
+        cases = [
+            (HEADER_CFG, "include/my_tool/version.h", HEADER, "add `#define <PREFIX>_VERSION_PRE_RELEASE_NUM 1`"),
+            (PLAIN, "VERSION", "0.3.6\n", "one-line VERSION file holds no pre-release number"),
+            ('version-source = "mypkg/_version.py"\n', "mypkg/_version.py",
+             'MAJOR = 0\nMINOR = 3\nPATCH = 1\nPHASE = ""\n__version__ = "0.3.1"\n', "add a line `PRE_RELEASE_NUM = 1`"),
+        ]
+        for i, (cfg, rel, content, hint) in enumerate(cases):
+            root = _project(tmp_path / str(i), cfg, {rel: content})
+            before = (root / rel).read_bytes()
+            r = _run(root, "--pre-num", "2", "--no-git-ver")
+            assert r.returncode == 0, r.stdout + r.stderr
+>           assert "Warning: --pre-num 2 not stored" in r.stderr and hint in r.stderr, (rel, r.stderr)
+E           AssertionError: ('include/my_tool/version.h', '')
+E           assert ('Warning: --pre-num 2 not stored' in '')
+E            +  where '' = CompletedProcess(args=['C:\\Python312\\python.exe', 'scripts/sync-versions.py', '--pre-num', '2', '--no-git-ver'], returncode=0, stdout='Version: 0.1.0  (PEP 440: 0.1.0, tag: v0.1.0)\n\nAll versions already in sync.\n', stderr='').stderr
+
+tests\test_sync_versions_sources.py:149: AssertionError
+=========================== short test summary info ===========================
+FAILED tests/test_sync_versions_sources.py::test_a_pre_num_that_cannot_land_is_said_not_swallowed
+1 failed, 9 deselected in 0.31s
+
+C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: "function", "class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+
+
+=== tree check
+porcelain unchanged

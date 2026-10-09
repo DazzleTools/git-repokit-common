@@ -46,6 +46,12 @@ from pathlib import Path
 TABLE = "repokit-common"
 FALLBACK_NAME = ".repokit-common.toml"
 _TABLE_HEADER = re.compile(r'^\s*\[\s*tool\s*\.\s*"?repokit-common"?\s*\]', re.MULTILINE)
+_PROJECT_HEADER = re.compile(r'^\s*\[\s*project\s*\]', re.MULTILINE)
+
+# The product languages the hooks know product checks for. A project may name
+# others (e.g. "rust"); they get no product checks until a profile exists.
+KNOWN_LANGUAGES = ("python", "c-cpp", "csharp", "javascript", "typescript")
+DEFAULT_LANGUAGES = ["python"]
 
 
 class ConfigError(Exception):
@@ -103,8 +109,20 @@ def _project_bound(start):
     return top
 
 
+def _is_repokit_common_copy(d):
+    """True when ``d`` holds repokit-common itself (its tools and VERSION)."""
+    return all((d / name).is_file() for name in ("repokit_config.py", "sync-versions.py", "VERSION"))
+
+
 def find_config(start):
-    """Return the config file for the project containing ``start``, or None."""
+    """Return the config file for the project containing ``start``, or None.
+
+    repokit-common configures its own versioning in a ``.repokit-common.toml``
+    at its root. That file travels with every vendored copy (a subtree, a
+    submodule, a plain copy), where it is NOT the consumer's settings: it is
+    honoured only when repokit-common is the project itself, i.e. its
+    directory is the repository root. Anywhere else the walk steps over it.
+    """
     start = Path(start).resolve()
     bound = ...  # not asked yet: git is only consulted at a .git marker
     for d in (start, *start.parents):
@@ -113,7 +131,13 @@ def find_config(start):
             return py
         alt = d / FALLBACK_NAME
         if alt.is_file():
-            return alt
+            if not _is_repokit_common_copy(d):
+                return alt
+            if bound is ...:
+                bound = _project_bound(start)
+            if bound is None or d == bound:
+                return alt
+            # a vendored copy's own file: not this project's settings
         if (d / ".git").exists():
             if bound is ...:
                 bound = _project_bound(start)
@@ -172,6 +196,53 @@ def load(start):
     return (path, read_table(path)) if path else (None, {})
 
 
+def project_root(start, config_path=None):
+    """Where the product lives: the config file's directory when there is one,
+    else the repository root (asked of git from ``start``), else ``start``."""
+    if config_path is not None:
+        return Path(config_path).resolve().parent
+    return _project_bound(start) or Path(start).resolve()
+
+
+def detect_languages(root):
+    """The product languages a project's root markers show, in a fixed order.
+
+    Root markers only: the vendored Python tooling under scripts/ must not make
+    a C project read as Python, and a pyproject.toml that holds only the
+    [tool.repokit-common] table is not a Python package.
+    """
+    root = Path(root)
+    found = []
+    py = root / "pyproject.toml"
+    if ((py.is_file() and _PROJECT_HEADER.search(py.read_text(encoding="utf-8", errors="replace")))
+            or (root / "setup.py").is_file() or (root / "setup.cfg").is_file()):
+        found.append("python")
+    if ((root / "CMakeLists.txt").is_file() or (root / "vcpkg.json").is_file()
+            or (root / "meson.build").is_file() or any(root.glob("*.vcxproj"))):
+        found.append("c-cpp")
+    if any(root.glob("*.csproj")) or any(root.glob("*/*.csproj")):
+        found.append("csharp")
+    if (root / "tsconfig.json").is_file():
+        found.append("typescript")
+    elif (root / "package.json").is_file():
+        found.append("javascript")
+    return found
+
+
+def languages(table, root):
+    """The product languages: the ``languages`` setting, else detection from
+    the root markers, else Python -- so a project that sets nothing and shows
+    nothing behaves exactly as before the setting existed."""
+    value = table.get("languages")
+    if value is None:
+        return detect_languages(root) or list(DEFAULT_LANGUAGES)
+    if not isinstance(value, list) or not all(isinstance(v, str) and v.strip() for v in value):
+        raise ConfigError(
+            "languages must be a list of names, e.g. languages = [\"python\"] "
+            f"(known: {', '.join(KNOWN_LANGUAGES)})")
+    return list(value)
+
+
 def _as_text(value):
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -217,20 +288,32 @@ def main(argv=None):
             print(path)
         return 0
     try:
-        _, table = load(args.start)
+        path, table = load(args.start)
     except NoTomlParser as e:
         print(f"repokit-common: warning: {e}; the project's settings are skipped", file=sys.stderr)
-        table = {}
+        path, table = None, {}
     except ConfigError as e:
         print(f"repokit-common: {e}", file=sys.stderr)
         return 2
-    if args.get:
-        if args.get in table:
-            print(_as_text(table[args.get]))
-        return 0
-    for key in args.shell:
-        value = _as_text(table[key]) if key in table else ""
-        print(f"{_var_name(key)}={shlex.quote(value)}")
+
+    def value_of(key):
+        # `languages` always has a value: the setting, detection, or Python.
+        if key == "languages":
+            return _as_text(languages(table, project_root(args.start, path)))
+        return _as_text(table[key]) if key in table else None
+
+    try:
+        if args.get:
+            value = value_of(args.get)
+            if value is not None:
+                print(value)
+            return 0
+        for key in args.shell:
+            value = value_of(key)
+            print(f"{_var_name(key)}={shlex.quote(value if value is not None else '')}")
+    except ConfigError as e:
+        print(f"repokit-common: {e}", file=sys.stderr)
+        return 2
     return 0
 
 
