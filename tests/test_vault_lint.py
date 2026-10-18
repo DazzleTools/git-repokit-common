@@ -250,3 +250,87 @@ def test_fix_preserves_CRLF_endings(tmp_path):
     assert b'[[A]]' in data                 # the fix landed
     assert data.count(CRLF.encode()) == 4   # every CRLF survived
     assert LF.encode() not in data.replace(CRLF.encode(), b'')  # no bare-LF leakage
+
+
+# --- issue #12: a non-UTF-8 note must not pass silently ---------------------
+# The tool read every note as UTF-8 with errors="replace"; a UTF-16 note decodes
+# to '#\x00 \x00T\x00i...' (NUL is a valid UTF-8 byte, never replaced), so its
+# links matched nothing and a broken link inside it reported as 0 broken links
+# and a clean exit. These tests pin the fix: read through the shared reader,
+# name the file, and never rewrite it.
+
+
+def _non_utf8_vault(tmp_path, note_name, note_bytes):
+    v = tmp_path / "private" / "claude"
+    (v / "_maps").mkdir(parents=True)
+    (v / "A.md").write_text("# A\n", encoding="utf-8")
+    (v / "_maps" / "MOC-t.md").write_text(
+        "---\nlast_refreshed: 2099-01-01\n---\n[[A]]\n", encoding="utf-8")
+    (v / note_name).write_bytes(note_bytes)
+    return v
+
+
+def test_non_utf8_note_with_broken_link_is_reported(tmp_path):
+    """The whole failure: [[NoSuchNote]] inside a UTF-16 note used to report 0
+    broken links and exit 0; it must now be seen and fail --check."""
+    import re
+    v = _non_utf8_vault(tmp_path, "utf16.md",
+                        "# Note\n\n[[NoSuchNote]]\n".encode("utf-16"))
+    r = _run(v, "--check")
+    assert r.returncode == 1
+    assert re.search(r"(\d+) broken", r.stdout).group(1) != "0"
+
+
+def test_report_names_the_non_utf8_note(tmp_path):
+    v = _non_utf8_vault(tmp_path, "utf16.md",
+                        "# Note\n\n[[NoSuchNote]]\n".encode("utf-16"))
+    r = _run(v)
+    assert r.returncode == 1                       # the broken link is a finding
+    assert "Non-UTF-8 notes" in r.stdout
+    assert "utf16.md" in r.stdout and "utf-16" in r.stdout
+
+
+def test_fix_refuses_non_utf8_note_and_leaves_it_untouched(tmp_path):
+    """A fixable-class link (MD) in a UTF-16 note must be refused, and the
+    file left byte-for-byte as it was -- never transcoded to UTF-8."""
+    v = _non_utf8_vault(tmp_path, "utf16.md",
+                        "# N\n\n[[A.md]]\n".encode("utf-16"))
+    note = v / "utf16.md"
+    before = note.read_bytes()
+    r = _run(v, "--fix")
+    assert note.read_bytes() == before             # encoding preserved exactly
+    assert b"\xff\xfe" in note.read_bytes()        # still UTF-16 LE with BOM
+    assert "refusing to rewrite" in r.stdout.lower()
+    assert "utf-16" in r.stdout.lower()
+
+
+def test_fix_still_fixes_a_utf8_note_with_the_same_broken_link(tmp_path):
+    """Control: the refusal is about encoding, not about the link class. The
+    same [[A.md]] in a UTF-8 note is still fixed to [[A]]."""
+    v = tmp_path / "private" / "claude"
+    (v / "_maps").mkdir(parents=True)
+    (v / "A.md").write_text("# A\n", encoding="utf-8")
+    (v / "_maps" / "MOC-t.md").write_text(
+        "---\nlast_refreshed: 2099-01-01\n---\n[[A]]\n", encoding="utf-8")
+    note = v / "note.md"
+    note.write_text("# N\n\n[[A.md]]\n", encoding="utf-8")
+    _run(v, "--fix")
+    assert "[[A]]" in note.read_text(encoding="utf-8")
+
+
+def test_freshness_and_manifest_reads_survive_non_utf8(tmp_path):
+    """The MOC-freshness and manifest-coverage reads must not crash (or
+    mis-decode) on a non-UTF-8 file."""
+    v = tmp_path / "private" / "claude"
+    (v / "_maps").mkdir(parents=True)
+    (v / "_oracle").mkdir()
+    (v / "A.md").write_text("# A\n", encoding="utf-8")
+    (v / "_maps" / "MOC-t.md").write_bytes(
+        "---\nlast_refreshed: 2099-01-01\n---\n[[A]]\n".encode("utf-16"))
+    (v / "_oracle" / "manifest.md").write_bytes(
+        "# manifest\n\nA\n".encode("utf-16"))
+    r = _run(v)
+    assert r.returncode in (0, 1)                  # not 2, and no traceback
+    assert "Traceback" not in r.stderr
+    assert "Freshness" in r.stdout                 # the UTF-16 MOC was read
+    assert "Non-UTF-8 notes" in r.stdout
