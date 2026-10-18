@@ -8,6 +8,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-10-18
+
+> **For consuming projects:** nothing to change. A push shows the test suite's progress as it runs; the verdict and the gate are the same.
+
+### Changed
+- **The pre-push hook shows the tests as they run.** pytest's output -- the dots, `s` and `F` with the percentage, then its closing count -- streams to the terminal during the run instead of a blank screen and one summary line at the end (a twelve-minute suite looked hung). The hook's verdict line follows and no longer repeats the counts, and on a failure the output is not printed a second time. pytest's colour follows the hook's `output` mode: on in a terminal, off when captured. `test-command` streams the same way.
+
+### Fixed
+- The syntax check (`compileall`) wrote its bytecode beside the project's sources. Left there it is junk; in a template tree it was copied into every project made from it (git-repokit 0.7.2 found seven stale `.pyc` files in its output after one push attempt). The bytecode now goes to a throwaway folder that is removed when the check ends.
+
 ## [0.4.0] - 2026-10-09
 
 > **For consuming projects:** nothing to change. A project that sets none of the new keys behaves exactly as before: its language is detected as Python when nothing else shows, the Python checks are unchanged, and a Python `_version.py` is handled as it always was. The one visible change is in `update-common.sh`, which now pulls through a tree dirty by only the version stamp instead of refusing it.
@@ -369,7 +379,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.5...v0.3.6
 [0.3.5]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.4...v0.3.5

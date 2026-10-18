@@ -196,11 +196,17 @@ echo -e "${BLUE}Checking Python syntax...${NC}"
 # glob expansion failure when no .py files exist at the target path.
 # Root-level .py files (a package's __init__.py or version.py kept at the
 # root) are checked too, non-recursively, when the package lives elsewhere.
+# The bytecode compileall writes goes to a throwaway folder
+# (PYTHONPYCACHEPREFIX), never beside the sources: left in the project it
+# is junk at best, and in a template tree it gets copied into every project
+# made from it (git-repokit 0.7.2 found seven such files in its output).
 _syntax_failed=false
-_syntax_out="$(python -m compileall -q "$PACKAGE_DIR" 2>&1)" || _syntax_failed=true
+_rk_pyc="$(python -c "import tempfile; print(tempfile.mkdtemp(prefix='rk-syntax-'))" 2>/dev/null)"
+_syntax_out="$(PYTHONPYCACHEPREFIX="$_rk_pyc" python -m compileall -q "$PACKAGE_DIR" 2>&1)" || _syntax_failed=true
 if [ "$PACKAGE_DIR" != "." ]; then
-    _root_out="$(python -m compileall -q -l . 2>&1)" || { _syntax_failed=true; _syntax_out="$_syntax_out$_root_out"; }
+    _root_out="$(PYTHONPYCACHEPREFIX="$_rk_pyc" python -m compileall -q -l . 2>&1)" || { _syntax_failed=true; _syntax_out="$_syntax_out$_root_out"; }
 fi
+[ -n "$_rk_pyc" ] && python -c "import shutil, sys; shutil.rmtree(sys.argv[1], ignore_errors=True)" "$_rk_pyc" 2>/dev/null
 if [ "$_syntax_failed" = true ]; then
     echo -e "${RED}${RK_FAIL} Python syntax errors found${NC}"
     echo "$_syntax_out"
@@ -221,7 +227,7 @@ echo ""
 echo -e "${BLUE}Running tests...${NC}"
 
 _tests_failing() {
-    # $1: what failed, $2: output to show
+    # $1: what failed, $2: output to show (empty when it was already streamed)
     echo -e "${YELLOW}${RK_WARN}${NC} $1"
     [ -n "$2" ] && echo "$2" | tail -n 60
     if $GATED; then
@@ -231,15 +237,27 @@ _tests_failing() {
     echo "  Consider fixing tests before pushing ($CURRENT_BRANCH is not a gated branch)"
 }
 
+# _rk_run_streamed CMD... -- runs CMD with its output shown as it happens (the
+# progress dots of a long suite, not a blank screen and one line at the end)
+# and captured in _out as plain text for the summary parse; _rc is CMD's own
+# exit code, not tee's. pytest flushes each dot even to a pipe (measured:
+# tests/one-offs/thinking/measure-pytest-flush).
+_rk_run_streamed() {
+    _rk_tmp="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/rk-tests.$$")"
+    "$@" 2>&1 | tee "$_rk_tmp"
+    _rc=${PIPESTATUS[0]}
+    _out="$(sed 's/\x1b\[[0-9;]*m//g' "$_rk_tmp")"
+    rm -f "$_rk_tmp"
+}
+
 if [ -n "$REPOKIT_TEST_COMMAND" ]; then
     # The project's own command, run from the repository root.
     echo "  test-command: $REPOKIT_TEST_COMMAND"
-    _out="$(sh -c "$REPOKIT_TEST_COMMAND" 2>&1)"
-    _rc=$?
+    _rk_run_streamed sh -c "$REPOKIT_TEST_COMMAND"
     if [ $_rc -eq 0 ]; then
         echo -e "${GREEN}${RK_OK}${NC} test-command passed"
     else
-        _tests_failing "test-command failed (exit $_rc)" "$_out"
+        _tests_failing "test-command failed (exit $_rc)" ""
     fi
 else
     # python -P keeps the repository root off the front of sys.path, so a
@@ -273,26 +291,27 @@ else
     if ! $DECLARED && [ -z "$(find tests/ -name 'test_*.py' -type f -not -path '*/one-offs/*' -not -path '*/thinking/*' 2>/dev/null | head -1)" ]; then
         echo -e "${YELLOW}${RK_WARN}${NC} No test files found (tests/test_*.py) -- skipping"
     else
-        # --color=no: the summary is parsed and reprinted with the hook's own
-        # markers, and FORCE_COLOR / PY_COLORS in the environment would
-        # otherwise put pytest's escape codes into it even when captured.
-        _out="$("${PYTEST[@]}" -q --color=no "${SCOPE[@]}" 2>&1)"
-        _rc=$?
-        # pytest's closing summary, e.g. "12 passed, 1 skipped in 0.40s".
+        # pytest's colour follows the hook's own output mode: its stdout is a
+        # pipe (tee), so it must be told; plain mode keeps escape codes out of
+        # captured output whatever FORCE_COLOR / PY_COLORS say.
+        if [ "$_rk_mode" = rich ]; then _rk_color=yes; else _rk_color=no; fi
+        _rk_run_streamed "${PYTEST[@]}" -q "--color=$_rk_color" "${SCOPE[@]}"
+        # pytest's closing summary, e.g. "12 passed, 1 skipped in 0.40s", has
+        # just been shown; the verdict lines below name the outcome without
+        # repeating it.
         _summary="$(echo "$_out" | grep -E '(passed|failed|error|no tests ran|skipped|deselected)' | tail -n1 | sed -E 's/^=+ //; s/ =+$//')"
         case $_rc in
             0)
-                echo -e "${GREEN}${RK_OK}${NC} All tests passed: $_summary"
+                echo -e "${GREEN}${RK_OK}${NC} All tests passed"
                 ;;
             1)
-                _tests_failing "Some tests failed: $_summary" "$_out"
+                _tests_failing "Some tests failed (see above)" ""
                 ;;
             5)
                 echo -e "${YELLOW}${RK_WARN}${NC} No tests collected -- skipping"
                 ;;
             *)
                 echo -e "${YELLOW}${RK_WARN}${NC} The test runner could not run (pytest exit $_rc)"
-                echo "$_out" | tail -n 60
                 echo "  This is not a test failure: pytest did not get as far as running tests."
                 if $GATED; then
                     echo -e "${RED}${RK_FAIL} BLOCKED: Cannot push to $CURRENT_BRANCH until the tests can run${NC}"

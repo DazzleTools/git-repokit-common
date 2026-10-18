@@ -229,7 +229,7 @@ def test_a_colour_forcing_environment_keeps_the_summary_plain(repo, var):
     env[var] = "1"
     r, out, landed = _push(repo, {"tests/test_a.py": PASSING}, env=env)
     assert r.returncode == 0 and landed, out
-    assert "[OK] All tests passed: 1 passed" in out
+    assert "[OK] All tests passed" in out and "1 passed" in out
     assert "\x1b" not in out
 
 
@@ -269,7 +269,7 @@ def test_a_py_package_at_the_root_does_not_shadow_pytest(repo):
         "tests/test_a.py": PASSING,
     })
     assert r.returncode == 0 and landed, out
-    assert "All tests passed: 1 passed" in out
+    assert "All tests passed" in out and "1 passed" in out
 
 
 def test_without_dash_p_the_fallback_still_keeps_the_root_off_sys_path(repo, tmp_path, monkeypatch):
@@ -292,14 +292,47 @@ def test_without_dash_p_the_fallback_still_keeps_the_root_off_sys_path(repo, tmp
         "tests/test_a.py": PASSING,
     })
     assert r.returncode == 0 and landed, out
-    assert "All tests passed: 1 passed" in out
+    assert "All tests passed" in out and "1 passed" in out
 
 
 def test_passing_tests_push_and_print_the_count(repo):
-    """CONSEQUENCE: 7 (behaviour) -- a passing run pushes and says how many tests ran."""
+    """CONSEQUENCE: 7 (behaviour) -- a passing run pushes and says how many tests ran
+    (pytest's own closing line, shown as it happens; the hook's verdict no longer repeats it)."""
     r, out, landed = _push(repo, {"tests/test_a.py": PASSING + "\n\ndef test_two():\n    pass\n"})
     assert r.returncode == 0 and landed, out
-    assert "All tests passed: 2 passed" in out
+    assert "All tests passed" in out and "2 passed" in out
+
+
+def test_progress_is_shown_while_the_tests_run(repo):
+    """CONSEQUENCE: 6 (behaviour) -- pytest's progress (dots, `s`, the percentage) reaches the
+    person during the run instead of a blank screen and one summary line at the end (0.4.1)."""
+    r, out, landed = _push(repo, {"tests/test_a.py": PASSING + "\n\ndef test_two():\n    pass\n"})
+    assert r.returncode == 0 and landed, out
+    assert "[100%]" in out
+
+
+def test_a_failure_is_shown_once_not_twice(repo):
+    """CONSEQUENCE: 5 (behaviour) -- with the output streamed, the hook no longer reprints
+    pytest's tail or its counts: the closing "1 failed" line appears exactly once."""
+    r, out, landed = _push(repo, {"tests/test_a.py": FAILING})
+    assert r.returncode != 0 and not landed
+    assert "deliberate failure" in out and "Some tests failed" in out
+    assert out.count("1 failed in") == 1, out
+
+
+def test_the_syntax_check_leaves_no_bytecode_in_the_project(repo):
+    """CONSEQUENCE: 7 (safety) -- compileall's bytecode goes to a throwaway folder, never
+    beside the sources: in a template tree it was copied into every project made from it
+    (git-repokit 0.7.2 found seven such files in its output)."""
+    root = repo[0]
+    r, out, landed = _push(repo, {"mypkg/__init__.py": "x = 1\n", "mypkg/mod.py": "y = 2\n",
+                                  "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "Python syntax check passed" in out
+    # pytest writes tests/__pycache__ for the tests it runs; the check is compileall's
+    # output beside the package and at the root, which the old hook left behind.
+    assert not (root / "mypkg" / "__pycache__").exists()
+    assert not (root / "__pycache__").exists()
 
 
 def test_failing_tests_on_a_feature_branch_warn_and_push(repo):
@@ -384,7 +417,7 @@ def test_one_offs_thinking_and_the_vendored_copy_are_not_collected(repo):
         "scripts/repokit-common/tests/test_vendored.py": FAILING,
     })
     assert r.returncode == 0 and landed, out
-    assert "All tests passed: 1 passed" in out
+    assert "All tests passed" in out and "1 passed" in out
 
 
 def test_a_vendored_copy_mounted_under_tests_is_not_collected(repo):
@@ -396,7 +429,7 @@ def test_a_vendored_copy_mounted_under_tests_is_not_collected(repo):
         "tests/tools/repokit-common/tests/test_vendored.py": FAILING,
     })
     assert r.returncode == 0 and landed, out
-    assert "All tests passed: 1 passed" in out
+    assert "All tests passed" in out and "1 passed" in out
 
 
 def test_repokit_common_as_the_project_gates_its_own_tests(repo):
