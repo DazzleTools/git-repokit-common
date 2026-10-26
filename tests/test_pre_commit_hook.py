@@ -209,6 +209,24 @@ def test_a_configured_prefix_blocks_in_a_worktree(worktree):
     assert not _in_head(wt, "drafts/idea.md")
 
 
+def test_a_configured_prefix_blocks_in_a_worktree_with_a_full_vendored_copy(worktree):
+    """CONSEQUENCE: 9 (safety) -- in a worktree git hands the hook GIT_DIR; the
+    config tool must still find the PROJECT's settings, not the vendored copy's
+    own .repokit-common.toml that travels with every subtree (0.4.2). With a
+    copy that carries its tools, VERSION and its own settings, the project's
+    entry used to be ignored in worktrees and only there."""
+    wt, hooks = worktree
+    _configure(wt, ["drafts/"])
+    copy = wt / "scripts" / "repokit-common"
+    for name in ("sync-versions.py", "VERSION", ".repokit-common.toml"):
+        shutil.copy(CONFIG_TOOL.parent / name, copy / name)
+    result = _commit(wt, hooks, "drafts/idea.md")
+    out = result.stdout + result.stderr
+    assert result.returncode != 0, out
+    assert "COMMIT BLOCKED" in out and "drafts/idea.md" in out
+    assert not _in_head(wt, "drafts/idea.md")
+
+
 def test_a_configured_prefix_blocks_in_a_clone(repo):
     """CONSEQUENCE: 9 (safety) -- the same in a normal clone, with the setting in pyproject.toml."""
     root, hooks = repo

@@ -8,6 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-10-26
+
+> **For consuming projects:** pull the subtree. Commits made in a git worktree are checked against the project's own `private-patterns` again, and the version step finds the project's version source there.
+
+### Fixed
+- **The settings lookup in a git worktree.** In a worktree git hands its hooks `GIT_DIR`. The settings lookup inherited it, took the vendored copy for the project, and read the copy's own `.repokit-common.toml`, so the pre-commit check there ignored the project's `private-patterns` and the version step reported "Cannot find VERSION". The lookup's git calls now drop git's repository-location variables, as dazzlecmd's do since its v0.9.30. Normal checkouts were not affected.
+
 ## [0.4.1] - 2026-10-18
 
 > **For consuming projects:** nothing to change. A push shows the test suite's progress as it runs; the verdict and the gate are the same.
@@ -379,7 +386,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.6...v0.4.0
 [0.3.6]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.5...v0.3.6

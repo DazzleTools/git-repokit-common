@@ -37,6 +37,7 @@ the console code page, because git gives the hooks paths as UTF-8.
 """
 
 import argparse
+import os
 import re
 import shlex
 import subprocess
@@ -79,10 +80,54 @@ def _has_table(pyproject):
         return False
 
 
+# Repository-location environment variables (the set `git rev-parse
+# --local-env-vars` reports). git EXPORTS these to hook subprocesses
+# (pre-push, post-checkout, ...), so any of our git calls running under a
+# hook would silently address the HOOK'S repository instead of the one we
+# name with `-C`: with GIT_DIR set, `rev-parse --show-toplevel` reports the
+# cwd as toplevel (defeating own-toplevel guards) and write commands like
+# `subtree add` mutate the wrong repo. We always address repos explicitly,
+# so these must never be inherited. Author/committer/ssh/askpass vars are
+# deliberately NOT stripped.
+#
+# Copied from dazzlecmd-lib (dazzlecmd_lib/mode.py, dazzlecmd bd01d4d,
+# v0.9.30). Here it keeps a pre-commit hook in a git worktree -- where git
+# exports GIT_DIR -- from taking the vendored copy for the project and
+# reading the copy's own settings instead of the project's (0.4.2).
+_GIT_REPO_LOCATION_VARS = (
+    "GIT_DIR",
+    "GIT_WORK_TREE",
+    "GIT_IMPLICIT_WORK_TREE",
+    "GIT_INDEX_FILE",
+    "GIT_OBJECT_DIRECTORY",
+    "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_COMMON_DIR",
+    "GIT_PREFIX",
+    "GIT_INTERNAL_SUPER_PREFIX",
+    "GIT_SHALLOW_FILE",
+    "GIT_GRAFT_FILE",
+    "GIT_NAMESPACE",
+    "GIT_QUARANTINE_PATH",
+)
+
+
+def sanitized_git_env():
+    """A copy of the environment safe for spawning git against an EXPLICIT repo.
+
+    Strips the repo-location variables above so a git subprocess resolves the
+    repository from its ``-C``/``cwd`` argument -- never from ambient hook
+    state. Pass as ``env=`` to every git ``subprocess`` call.
+    """
+    env = dict(os.environ)
+    for var in _GIT_REPO_LOCATION_VARS:
+        env.pop(var, None)
+    return env
+
+
 def _git(start, *args):
     try:
         r = subprocess.run(["git", "-C", str(start), "rev-parse", *args],
-                           capture_output=True, text=True)
+                           capture_output=True, text=True, env=sanitized_git_env())
     except OSError:
         return ""
     return r.stdout.strip() if r.returncode == 0 else ""
