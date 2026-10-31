@@ -125,6 +125,34 @@ rk_setup_output() {
     fi
 }
 
+# rk_load_profiles -- sources hooks/profiles/<language>.sh, beside this
+# library, for each of REPOKIT_LANGUAGES that has one; sets RK_PROFILES_DIR.
+# A profile holds one language's steps (see profiles/python.sh for the
+# contract); a language without one gets no language-specific steps. Only
+# names made of a-z, 0-9 and "-" are looked up. Returns 1 when the profiles
+# folder itself is missing: the hook must stop rather than silently drop
+# every language's checks. Run rk_locate first: _rk_hooks is the hooks'
+# folder resolved before pre-push's cd, when a relative $0 still points at it.
+# Read settings (with the languages key) first too.
+rk_load_profiles() {
+    RK_PROFILES_DIR="${_rk_hooks:-$(cd "$(dirname "$0")" 2>/dev/null && pwd)}/profiles"
+    [ -d "$RK_PROFILES_DIR" ] || return 1
+    for _rk_lp in ${REPOKIT_LANGUAGES:-}; do
+        case "$_rk_lp" in *[!a-z0-9-]*|"") continue ;; esac
+        [ -f "$RK_PROFILES_DIR/$_rk_lp.sh" ] && . "$RK_PROFILES_DIR/$_rk_lp.sh"
+    done
+    return 0
+}
+
+# rk_profile_fn LANGUAGE STEP -- prints the name of the function for STEP
+# (setup, check, product, precommit) when LANGUAGE's profile defines it, and
+# nothing otherwise. A hyphen in the language becomes "_" (c-cpp -> c_cpp).
+rk_profile_fn() {
+    _rk_pf="rk_profile_$(printf '%s' "$1" | tr -c 'A-Za-z0-9' '_')_$2"
+    command -v "$_rk_pf" >/dev/null 2>&1 && printf '%s' "$_rk_pf"
+    return 0
+}
+
 # rk_match_patterns BRANCH PATTERNS -- true when BRANCH matches one of the
 # shell glob PATTERNS (space- or newline-separated). Patterns are matched,
 # never expanded against files.

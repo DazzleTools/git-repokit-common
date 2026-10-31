@@ -1,0 +1,206 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_repokit_config.py",
+      "tests/test_pre_push_hook.py",
+      "-k",
+      "check_command or languages or python or javascript or c_cpp or syntax or typescript"
+    ],
+    "timestamp": "2026-10-30T12:31:45-04:00"
+  },
+  "results": [
+    {
+      "id": "R1",
+      "file": "repokit_config.py",
+      "note": "Join-format separator: --get check-command emits 'language command' with a space instead of a tab.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "s named) and one REPOKIT_CHECK_COMMAND_<LANG>\n        each, an empty command kept as set-but-empty; unset, only the empty list.\"\"\"\n        proj = tmp_path / \"proj\"\n        _w(proj / \".repokit-common.toml\",\n           '[tool.repokit-common.check-command]\\npython = \"ruff check .\"\\nc-cpp = \"\"\\n')\n        tool = _w(proj / \"scripts\" / \"tool.py\")\n        _init(proj)\n        assert RC.main([\"--shell\", \"check-command\", \"--start\", str(tool.parent)]) == 0\n        assert capsys.readouterr().out == (\n            \"REPOKIT_CHECK_COMMAND='python c-cpp'\\n\"\n            \"REPOKIT_CHECK_COMMAND_PYTHON='ruff check .'\\n\"\n            \"REPOKIT_CHECK_COMMAND_C_CPP=''\\n\")\n        assert RC.main([\"--get\", \"check-command\", \"--start\", str(tool.parent)]) == 0\n>       assert capsys.readouterr().out == \"python\\truff check .\\nc-cpp\\t\\n\"\nE       AssertionError: assert 'python ruff ...k .\\nc-cpp \\n' == 'python\\truff... .\\nc-cpp\\t\\n'\nE         \nE         - python\truff check .\nE         ?       ^\nE         + python ruff check .\nE         ?       ^\nE         - c-cpp\t\nE         ?      ^\nE         + c-cpp \nE         ?      ^\n\ntests\\test_repokit_config.py:337: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language\n1 failed, 29 passed, 51 deselected in 33.17s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ]
+    },
+    {
+      "id": "R2",
+      "file": "repokit_config.py",
+      "note": "Guard typo (underscore): --get check-command goes down the generic path and prints the raw dict.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ur) -- [tool.repokit-common.check-command] becomes\n        REPOKIT_CHECK_COMMAND (the languages named) and one REPOKIT_CHECK_COMMAND_<LANG>\n        each, an empty command kept as set-but-empty; unset, only the empty list.\"\"\"\n        proj = tmp_path / \"proj\"\n        _w(proj / \".repokit-common.toml\",\n           '[tool.repokit-common.check-command]\\npython = \"ruff check .\"\\nc-cpp = \"\"\\n')\n        tool = _w(proj / \"scripts\" / \"tool.py\")\n        _init(proj)\n        assert RC.main([\"--shell\", \"check-command\", \"--start\", str(tool.parent)]) == 0\n        assert capsys.readouterr().out == (\n            \"REPOKIT_CHECK_COMMAND='python c-cpp'\\n\"\n            \"REPOKIT_CHECK_COMMAND_PYTHON='ruff check .'\\n\"\n            \"REPOKIT_CHECK_COMMAND_C_CPP=''\\n\")\n        assert RC.main([\"--get\", \"check-command\", \"--start\", str(tool.parent)]) == 0\n>       assert capsys.readouterr().out == \"python\\truff check .\\nc-cpp\\t\\n\"\nE       assert \"{'python': '...c-cpp': ''}\\n\" == 'python\\truff... .\\nc-cpp\\t\\n'\nE         \nE         + {'python': 'ruff check .', 'c-cpp': ''}\nE         - python\truff check .\nE         - c-cpp\n\ntests\\test_repokit_config.py:337: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language\n1 failed, 29 passed, 51 deselected in 32.99s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ]
+    },
+    {
+      "id": "R3",
+      "file": "repokit_config.py",
+      "note": "Guard variant in --shell: no REPOKIT_CHECK_COMMAND_<LANGUAGE> variables are emitted.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "anded = _push(repo, {\".repokit-common.toml\": cfg, \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n>       assert f\"Checking {lang}...\" in out and \"lint-would-run\" in out\nE       AssertionError: assert ('Checking c-cpp...' in '-- Pre-push validation for branch: main\\n  Product languages: c-cpp\\n\\n\\nRunning tests...\\n  scope: tests/ (one-offs/...d tests are the gate)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n')\n\ntests\\test_pre_push_hook.py:283: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language\nFAILED tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main\nFAILED tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch\nFAILED tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off\nFAILED tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step\nFAILED tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]\nFAILED tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]\n7 failed, 23 passed, 51 deselected in 32.71s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]",
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]",
+        "tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch",
+        "tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step",
+        "tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ]
+    },
+    {
+      "id": "R4",
+      "file": "repokit_config.py",
+      "note": "Swapped arguments: REPOKIT_PYTHON_CHECK_COMMAND instead of REPOKIT_CHECK_COMMAND_PYTHON.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "anded = _push(repo, {\".repokit-common.toml\": cfg, \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n>       assert f\"Checking {lang}...\" in out and \"lint-would-run\" in out\nE       AssertionError: assert ('Checking c-cpp...' in '-- Pre-push validation for branch: main\\n  Product languages: c-cpp\\n\\n\\nRunning tests...\\n  scope: tests/ (one-offs/...d tests are the gate)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n')\n\ntests\\test_pre_push_hook.py:283: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language\nFAILED tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main\nFAILED tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch\nFAILED tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off\nFAILED tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step\nFAILED tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]\nFAILED tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]\n7 failed, 23 passed, 51 deselected in 32.06s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]",
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]",
+        "tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch",
+        "tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step",
+        "tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ]
+    },
+    {
+      "id": "R5",
+      "file": "hooks/pre-push",
+      "note": "Default dispatch widened: every language with no check-command gets the Python syntax check.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ipt\"]\\n',\n            \"tools/gen.py\": BROKEN_PY, \"tests/test_a.py\": PASSING})\n>       assert r.returncode == 0 and landed, out\nE       AssertionError: -- Pre-push validation for branch: main\nE           Product languages: javascript\nE         \nE         Checking Python syntax...\nE         [X] Python syntax errors found\nE         *** Error compiling '.\\\\tools\\\\gen.py'...\nE           File \".\\tools\\gen.py\", line 1\nE             def broken(:\nE                        ^\nE         SyntaxError: invalid syntax\nE         Fix syntax errors before pushing\nE         error: failed to push some refs to 'C:\\Users\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-14552\\test_a_declared_javascript_pro0\\remote.git'\nE         \nE       assert (1 == 0)\nE        +  where 1 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...Users\\\\Extreme\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-Extreme\\\\pytest-14552\\\\test_a_declared_javascript_pro0\\\\remote.git'\\n\").returncode\n\ntests\\test_pre_push_hook.py:218: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks\nFAILED tests/test_pre_push_hook.py::test_a_declared_javascript_project_gets_no_python_syntax_step\n2 failed, 28 passed, 51 deselected in 35.46s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks",
+        "tests/test_pre_push_hook.py::test_a_declared_javascript_project_gets_no_python_syntax_step"
+      ]
+    },
+    {
+      "id": "R6",
+      "file": "hooks/pre-push",
+      "note": "Wrong variable in the empty test: an empty command runs sh -c \"\" and reports passed.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "_______\n\nrepo = (WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14553/test_an_empty_check_command_tu0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14553/test_an_empty_check_command_tu0/remote.git'))\n\n    def test_an_empty_check_command_turns_the_python_step_off(repo):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- check-command.python = \"\" turns the\n        syntax check off, and says so.\"\"\"\n        cfg = '[tool.repokit-common]\\ncheck-command.python = \"\"\\n'\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, \"tools/gen.py\": BROKEN_PY,\n                                      \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n>       assert \"python: check step off (check-command is empty)\" in out\nE       AssertionError: assert 'python: check step off (check-command is empty)' in '-- Pre-push validation for branch: main\\n  Product languages: python\\n\\nChecking python...\\n  check-command: \\n[OK] p...r debug statements...\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:258: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off\n1 failed, 29 passed, 51 deselected in 34.29s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 6
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks": [
+        "R5"
+      ],
+      "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_declared_javascript_project_gets_no_python_syntax_step": [
+        "R5"
+      ],
+      "tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language": [
+        "R1",
+        "R2",
+        "R3",
+        "R4"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks",
+        "tests/test_pre_push_hook.py::test_a_declared_javascript_project_gets_no_python_syntax_step"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]",
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]",
+        "tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch",
+        "tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step",
+        "tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main"
+      ]
+    ],
+    "contained": [
+      [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[c-cpp]",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_check_command_gives_a_language_without_a_default_a_step[javascript]",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_failing_check_command_warns_on_an_ungated_branch",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_passing_python_check_command_is_the_whole_step",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main",
+        "tests/test_pre_push_hook.py::test_an_empty_check_command_turns_the_python_step_off"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main",
+        "tests/test_repokit_config.py::test_check_command_table_reaches_the_hooks_one_variable_per_language"
+      ]
+    ],
+    "killed_without_names": []
+  }
+}

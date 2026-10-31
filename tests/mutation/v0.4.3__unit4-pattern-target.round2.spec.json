@@ -1,0 +1,11 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_sync_versions_extra_targets.py"],
+ "mutations": [
+  {"id": "R1", "file": "sync-versions.py", "original": "if \"field\" in spec:", "mutated": "if \"field\" in spec and s[\"type\"] == \"json\":", "note": "A pattern target that also names 'field' is accepted."},
+  {"id": "R2", "file": "sync-versions.py", "original": "except re.error as e:", "mutated": "except ValueError as e:", "note": "An invalid pattern escapes as a raw re.error."},
+  {"id": "R3", "file": "sync-versions.py", "original": "_TARGET_TYPES = {\"json\", \"pattern\"}", "mutated": "_TARGET_TYPES = {\"json\"}", "note": "The type set loses 'pattern'."},
+  {"id": "R4", "file": "sync-versions.py", "original": "_TARGET_KEYS = {\"path\", \"type\", \"field\", \"pattern\", \"match\", \"format\"}", "mutated": "_TARGET_KEYS = {\"path\", \"type\", \"field\", \"match\", \"format\"}", "note": "The key set loses 'pattern'."},
+  {"id": "R5", "file": "sync-versions.py", "original": "return \"stale\"", "mutated": "pass", "note": "--check falls through and writes."},
+  {"id": "R6", "file": "sync-versions.py", "original": "spans = _pattern_spans(text, s[\"regex\"])", "mutated": "spans = _json_field_spans(text, s[\"field\"])", "note": "A pattern target is scanned as JSON."}
+ ]
+}

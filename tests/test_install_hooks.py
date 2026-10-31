@@ -148,7 +148,8 @@ def test_reinstalling_identical_hooks_makes_no_backups(repo, tmp_path):
 # ---------------------------------------------------------------------------
 
 VENDORED_FILES = ("repokit_config.py", "sync-versions.py", "install-hooks.sh",
-                  "hooks/pre-commit", "hooks/post-commit", "hooks/pre-push", "hooks/lib.sh")
+                  "hooks/pre-commit", "hooks/post-commit", "hooks/pre-push", "hooks/lib.sh",
+                  *sorted(p.relative_to(ROOT).as_posix() for p in (ROOT / "hooks" / "profiles").glob("*.sh")))
 PASSING = "def test_ok():\n    assert True\n"
 FAILING = "def test_bad():\n    assert False, 'deliberate failure'\n"
 

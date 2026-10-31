@@ -27,10 +27,26 @@
 #   print-warning  false turns off the print() / console.log count warning
 #   languages      the product's languages (a list); unset, detected from the
 #                  root markers, and python when nothing shows. Each language's
-#                  PROFILE runs its own product checks below: python's are the
-#                  package detection, pdb scan and print() count exactly as
-#                  before the setting existed. The tooling layer -- the Python
-#                  syntax check and the test run -- runs in every project.
+#                  PROFILE (hooks/profiles/<language>.sh, loaded through
+#                  lib.sh) runs its own steps below: python's are the
+#                  package detection, the syntax check, the pdb scan and the
+#                  print() count, exactly as before the setting existed. A
+#                  project whose languages do not include python gets none of
+#                  them. The test run is the same for every language.
+#   check-command  a table of commands per language
+#                  ([tool.repokit-common.check-command], python = "ruff check .")
+#                  replacing that language's check step (python's default is
+#                  the syntax check); "" turns the step off. Run with `sh -c`
+#                  from the repository root; a non-zero exit blocks a gated
+#                  branch and warns on any other, as failing tests do.
+#   paradox-game   for languages = ["paradox"] (a Paradox game mod): the game,
+#                  e.g. "ck3". The paradox profile's default check runs the
+#                  game's Tiger linter (ck3-tiger, vic3-tiger, imperator-tiger)
+#                  on the mod -- mod/ when it holds descriptor.mod, else the
+#                  root -- when it is on PATH, and reports a skip when it is
+#                  not. The push shows Tiger's summary line; the full report
+#                  goes to .git/repokit-<linter>.txt. Findings never block;
+#                  set check-command.paradox to gate on a linter instead.
 #
 # With no settings, tests run as `python -P -m pytest`: the project's own
 # pytest `testpaths` when it declares them, otherwise tests/ without
@@ -57,14 +73,16 @@ cd "$REPO_ROOT" 2>/dev/null || true
 # style every message below uses. A failure is reported further down, at the
 # point the push is validated.
 _rk_settings_ok=true
-rk_read_settings test-command print-warning strict-branches output languages || _rk_settings_ok=false
+rk_read_settings test-command print-warning strict-branches output languages check-command paradox-game || _rk_settings_ok=false
 rk_setup_output
+# Each language's steps live in hooks/profiles/<language>.sh beside this hook.
 # languages always arrives with a value (the setting, detection, or python);
 # only an unreadable settings file leaves it empty, and that stops the push below.
-_rk_has_lang() {
-    for _rk_l in $REPOKIT_LANGUAGES; do [ "$_rk_l" = "$1" ] && return 0; done
-    return 1
-}
+if ! rk_load_profiles; then
+    echo "repokit-common: $(basename "$0") cannot run -- profiles/ is not beside it in $(dirname "$0")." >&2
+    echo "  Re-run install-hooks.sh from the vendored repokit-common copy." >&2
+    exit 1
+fi
 
 # =============================================================================
 # CAPTURE PUSHED REFS (read stdin once, iterate multiple times below)
@@ -129,41 +147,13 @@ if $PUSHING_TAGS_ONLY; then
     exit 0
 fi
 
-# Auto-detect the Python package directory (the python profile; a project
-# whose languages do not include python checks every .py file from the root)
-# Looks for a directory containing __init__.py at the project root or under src/
+# Each language's setup step (the python profile finds the package
+# directory); with none set, the product checks scan from the root.
 PACKAGE_DIR=""
-if _rk_has_lang python; then
-for dir in */; do
-    if [ -f "${dir}__init__.py" ]; then
-        PACKAGE_DIR="${dir%/}"
-        break
-    fi
+for _rk_lang in $REPOKIT_LANGUAGES; do
+    _rk_fn="$(rk_profile_fn "$_rk_lang" setup)"
+    [ -n "$_rk_fn" ] && "$_rk_fn"
 done
-
-# Also check src/ layout (PEP 517 / setuptools src layout)
-if [ -z "$PACKAGE_DIR" ] && [ -d "src" ]; then
-    for dir in src/*/; do
-        if [ -f "${dir}__init__.py" ]; then
-            PACKAGE_DIR="${dir%/}"
-            break
-        fi
-    done
-fi
-fi
-
-if [ -z "$PACKAGE_DIR" ] && _rk_has_lang python; then
-    # Warn only a project that declares itself a Python package; there a
-    # missing __init__.py is worth saying. A TypeScript, C or Rust project
-    # whose Python is only tooling would get it on every push, which teaches
-    # people to skip the real warnings. Either way the checks below then
-    # cover every .py file.
-    if [ -f setup.py ] || [ -f setup.cfg ] || \
-       { [ -f pyproject.toml ] && grep -qE '^[[:space:]]*\[project\]' pyproject.toml; }; then
-        echo -e "${YELLOW}Warning: No Python package directory found (no __init__.py)${NC}"
-        echo "Skipping package-specific checks"
-    fi
-fi
 [ -z "$PACKAGE_DIR" ] && PACKAGE_DIR="."
 
 # =============================================================================
@@ -188,32 +178,62 @@ echo -e "${BLUE}${RK_INFO} Pre-push validation for branch: $CURRENT_BRANCH${NC}"
 echo "  Product languages: $(printf '%s ' $REPOKIT_LANGUAGES | sed 's/ $//')"
 echo ""
 
+# _rk_run_streamed CMD... -- runs CMD with its output shown as it happens (the
+# progress dots of a long suite, not a blank screen and one line at the end)
+# and captured in _out as plain text for the summary parse; _rc is CMD's own
+# exit code, not tee's. pytest flushes each dot even to a pipe (measured:
+# tests/one-offs/thinking/measure-pytest-flush).
+_rk_run_streamed() {
+    _rk_tmp="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/rk-tests.$$")"
+    "$@" 2>&1 | tee "$_rk_tmp"
+    _rc=${PIPESTATUS[0]}
+    _out="$(sed 's/\x1b\[[0-9;]*m//g' "$_rk_tmp")"
+    rm -f "$_rk_tmp"
+}
+
 # =============================================================================
-# PYTHON SYNTAX CHECK
+# CHECKS, ONE STEP PER LANGUAGE
+# Each of the project's languages (the setting, else detection, else python)
+# gets its own check step. A language's check-command replaces its default;
+# an empty one turns the step off. python's default is the syntax check, so a
+# project that sets nothing and shows no markers keeps it exactly as before.
 # =============================================================================
-echo -e "${BLUE}Checking Python syntax...${NC}"
-# Use compileall for recursive check; handles src/ layout and avoids
-# glob expansion failure when no .py files exist at the target path.
-# Root-level .py files (a package's __init__.py or version.py kept at the
-# root) are checked too, non-recursively, when the package lives elsewhere.
-# The bytecode compileall writes goes to a throwaway folder
-# (PYTHONPYCACHEPREFIX), never beside the sources: left in the project it
-# is junk at best, and in a template tree it gets copied into every project
-# made from it (git-repokit 0.7.2 found seven such files in its output).
-_syntax_failed=false
-_rk_pyc="$(python -c "import tempfile; print(tempfile.mkdtemp(prefix='rk-syntax-'))" 2>/dev/null)"
-_syntax_out="$(PYTHONPYCACHEPREFIX="$_rk_pyc" python -m compileall -q "$PACKAGE_DIR" 2>&1)" || _syntax_failed=true
-if [ "$PACKAGE_DIR" != "." ]; then
-    _root_out="$(PYTHONPYCACHEPREFIX="$_rk_pyc" python -m compileall -q -l . 2>&1)" || { _syntax_failed=true; _syntax_out="$_syntax_out$_root_out"; }
-fi
-[ -n "$_rk_pyc" ] && python -c "import shutil, sys; shutil.rmtree(sys.argv[1], ignore_errors=True)" "$_rk_pyc" 2>/dev/null
-if [ "$_syntax_failed" = true ]; then
-    echo -e "${RED}${RK_FAIL} Python syntax errors found${NC}"
-    echo "$_syntax_out"
-    echo "Fix syntax errors before pushing"
-    exit 1
-fi
-echo -e "${GREEN}${RK_OK}${NC} Python syntax check passed"
+
+# _rk_check_failing LANGUAGE -- a check-command failed: block a gated branch,
+# warn on any other, as failing tests do.
+_rk_check_failing() {
+    echo -e "${YELLOW}${RK_WARN}${NC} $1 check-command failed (exit $_rc)"
+    if $GATED; then
+        echo -e "${RED}${RK_FAIL} BLOCKED: Cannot push to $CURRENT_BRANCH with a failing $1 check${NC}"
+        exit 1
+    fi
+    echo "  Consider fixing it before pushing ($CURRENT_BRANCH is not a gated branch)"
+}
+
+for _rk_lang in $REPOKIT_LANGUAGES; do
+    # The variable holding this language's check-command, if the table names
+    # it: REPOKIT_CHECK_COMMAND_<LANGUAGE>, upper case, anything else as _.
+    _rk_ccvar="REPOKIT_CHECK_COMMAND_$(printf '%s' "$_rk_lang" | tr 'abcdefghijklmnopqrstuvwxyz' 'ABCDEFGHIJKLMNOPQRSTUVWXYZ' | tr -c 'A-Z0-9' '_')"
+    eval "_rk_ccset=\${$_rk_ccvar+set}; _rk_cc=\${$_rk_ccvar-}"
+    if [ "$_rk_ccset" = set ]; then
+        if [ -z "$_rk_cc" ]; then
+            echo "  $_rk_lang: check step off (check-command is empty)"
+            continue
+        fi
+        echo -e "${BLUE}Checking $_rk_lang...${NC}"
+        echo "  check-command: $_rk_cc"
+        _rk_run_streamed sh -c "$_rk_cc"
+        if [ $_rc -eq 0 ]; then
+            echo -e "${GREEN}${RK_OK}${NC} $_rk_lang check-command passed"
+        else
+            _rk_check_failing "$_rk_lang"
+        fi
+        continue
+    fi
+    # No check-command: the profile's default check step, if it has one.
+    _rk_fn="$(rk_profile_fn "$_rk_lang" check)"
+    [ -n "$_rk_fn" ] && "$_rk_fn"
+done
 
 # =============================================================================
 # RUN TESTS
@@ -235,19 +255,6 @@ _tests_failing() {
         exit 1
     fi
     echo "  Consider fixing tests before pushing ($CURRENT_BRANCH is not a gated branch)"
-}
-
-# _rk_run_streamed CMD... -- runs CMD with its output shown as it happens (the
-# progress dots of a long suite, not a blank screen and one line at the end)
-# and captured in _out as plain text for the summary parse; _rc is CMD's own
-# exit code, not tee's. pytest flushes each dot even to a pipe (measured:
-# tests/one-offs/thinking/measure-pytest-flush).
-_rk_run_streamed() {
-    _rk_tmp="$(mktemp 2>/dev/null || echo "${TMPDIR:-/tmp}/rk-tests.$$")"
-    "$@" 2>&1 | tee "$_rk_tmp"
-    _rc=${PIPESTATUS[0]}
-    _out="$(sed 's/\x1b\[[0-9;]*m//g' "$_rk_tmp")"
-    rm -f "$_rk_tmp"
 }
 
 if [ -n "$REPOKIT_TEST_COMMAND" ]; then
@@ -325,11 +332,12 @@ fi
 
 # =============================================================================
 # PRODUCT CHECKS, ONE PROFILE PER LANGUAGE
-# Every profile has the same two checks: debugger statements (an error) and
-# print-style noise (a warning, off with print-warning = false). The project's
-# own code only: never tests, never the vendored repokit-common copy (a fresh
-# consumer with no package directory once saw "257 in ./", almost all of them
-# repokit-common's own), never dependency folders.
+# A profile's product step usually runs two checks through the helpers below:
+# debugger statements (an error) and print-style noise (a warning, off with
+# print-warning = false). The project's own code only: never tests, never the
+# vendored repokit-common copy (a fresh consumer with no package directory
+# once saw "257 in ./", almost all of them repokit-common's own), never
+# dependency folders.
 # =============================================================================
 echo ""
 echo -e "${BLUE}Checking for debug statements...${NC}"
@@ -359,30 +367,14 @@ _rk_noise_check() {
     fi
 }
 
-for _rk_lang in $REPOKIT_LANGUAGES; do
-    case "$_rk_lang" in
-        python)
-            # Exactly the checks every Python consumer had before profiles existed.
-            _rk_debug_check python "import pdb|pdb\.set_trace\(\)" "pdb statements" --include="*.py"
-            _rk_noise_check python "print(" "print()" --include="*.py"
-            ;;
-        typescript|javascript)
-            _rk_debug_check "$_rk_lang" "^[[:space:]]*debugger;?[[:space:]]*$" "debugger statements" \
-                --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.mjs" --include="*.cjs"
-            _rk_noise_check "$_rk_lang" "console.log(" "console.log()" \
-                --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" --include="*.mjs" --include="*.cjs"
-            ;;
-        csharp)
-            _rk_debug_check csharp "Debugger\.Break\(\)" "Debugger.Break() calls" --include="*.cs"
-            _rk_noise_check csharp "Console.WriteLine(" "Console.WriteLine()" --include="*.cs"
-            ;;
-        c-cpp)
-            echo "  c-cpp: no product checks (the build and tests are the gate)"
-            ;;
-        *)
-            echo "  $_rk_lang: no product checks for this language yet"
-            ;;
-    esac
+# Each language's product step lives in its profile (hooks/profiles/).
+for _rk_plang in $REPOKIT_LANGUAGES; do
+    _rk_fn="$(rk_profile_fn "$_rk_plang" product)"
+    if [ -n "$_rk_fn" ]; then
+        "$_rk_fn"
+    else
+        echo "  $_rk_plang: no product checks for this language yet"
+    fi
 done
 
 echo -e "${GREEN}${RK_OK}${NC} No debugger statements found"

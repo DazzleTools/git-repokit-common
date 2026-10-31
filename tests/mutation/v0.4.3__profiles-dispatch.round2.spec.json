@@ -1,0 +1,10 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_pre_push_hook.py", "tests/test_pre_commit_hook.py", "-k", "profile or outside_the_profiles or relative_path or two_language or python or c_cpp or paradox or tiger or typescript or javascript or syntax or bom"],
+ "mutations": [
+  {"id": "R1", "file": "hooks/lib.sh", "original": "        [ -f \"$RK_PROFILES_DIR/$_rk_lp.sh\" ] && . \"$RK_PROFILES_DIR/$_rk_lp.sh\"", "mutated": "        . \"$RK_PROFILES_DIR/$_rk_lp.sh\"", "note": "Sourced without the -f test: a language with no profile errors."},
+  {"id": "R2", "file": "hooks/lib.sh", "original": "        case \"$_rk_lp\" in *[!a-z0-9-]*|\"\") continue ;; esac", "mutated": "        case \"$_rk_lp\" in *[!a-z0-9]*|\"\") continue ;; esac", "note": "'-' not allowed: c-cpp's profile never loads."},
+  {"id": "R3", "file": "hooks/pre-push", "original": "        echo \"  $_rk_plang: no product checks for this language yet\"", "mutated": "        :", "note": "A language without a product step is skipped silently."},
+  {"id": "R4", "file": "hooks/lib.sh", "original": "    command -v \"$_rk_pf\" >/dev/null 2>&1 && printf '%s' \"$_rk_pf\"", "mutated": "    command -v \"$_rk_pf\" && printf '%s' \"$_rk_pf\"", "note": "command -v's output joins the function name."},
+  {"id": "R5", "file": "hooks/lib.sh", "original": "    RK_PROFILES_DIR=\"${_rk_hooks:-$(cd \"$(dirname \"$0\")\" 2>/dev/null && pwd)}/profiles\"", "mutated": "    RK_PROFILES_DIR=\"$(cd \"$(dirname \"$0\")\" 2>/dev/null && pwd)/profiles\"", "note": "The pre-cd hooks folder is ignored."}
+ ]
+}

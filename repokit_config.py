@@ -51,7 +51,9 @@ _PROJECT_HEADER = re.compile(r'^\s*\[\s*project\s*\]', re.MULTILINE)
 
 # The product languages the hooks know product checks for. A project may name
 # others (e.g. "rust"); they get no product checks until a profile exists.
-KNOWN_LANGUAGES = ("python", "c-cpp", "csharp", "javascript", "typescript")
+# paradox is a Paradox game mod (CK3, Victoria 3, Stellaris, ...): declared,
+# never detected, with the game named by the paradox-game setting.
+KNOWN_LANGUAGES = ("python", "c-cpp", "csharp", "javascript", "typescript", "paradox")
 DEFAULT_LANGUAGES = ["python"]
 
 
@@ -288,6 +290,26 @@ def languages(table, root):
     return list(value)
 
 
+def check_commands(table):
+    """The ``check-command`` table: {language: command}, empty when unset.
+
+    A language's command replaces that language's own check step in the
+    pre-push (python's default is the syntax check); an empty command turns
+    the step off; a language with no default step gets one. Written as
+
+        [tool.repokit-common.check-command]
+        python = "ruff check ."
+    """
+    value = table.get("check-command")
+    if value is None:
+        return {}
+    if not isinstance(value, dict) or not all(isinstance(v, str) for v in value.values()):
+        raise ConfigError(
+            "check-command must be a table of commands per language, e.g. "
+            "[tool.repokit-common.check-command] with python = \"ruff check .\"")
+    return dict(value)
+
+
 def _as_text(value):
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -345,6 +367,10 @@ def main(argv=None):
         # `languages` always has a value: the setting, detection, or Python.
         if key == "languages":
             return _as_text(languages(table, project_root(args.start, path)))
+        if key == "check-command":
+            # One "language<TAB>command" line each; the hooks use --shell.
+            commands = check_commands(table)
+            return "\n".join(f"{k}\t{v}" for k, v in commands.items()) if commands else None
         return _as_text(table[key]) if key in table else None
 
     try:
@@ -354,6 +380,15 @@ def main(argv=None):
                 print(value)
             return 0
         for key in args.shell:
+            if key == "check-command":
+                # REPOKIT_CHECK_COMMAND names the languages that have one, and
+                # REPOKIT_CHECK_COMMAND_<LANGUAGE> holds each command (set,
+                # possibly empty, only for a language the table names).
+                commands = check_commands(table)
+                print(f"{_var_name(key)}={shlex.quote(' '.join(commands))}")
+                for lang, command in commands.items():
+                    print(f"{_var_name(key + '-' + lang)}={shlex.quote(command)}")
+                continue
             value = value_of(key)
             print(f"{_var_name(key)}={shlex.quote(value if value is not None else '')}")
     except ConfigError as e:

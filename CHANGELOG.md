@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-10-30
+
+> **For consuming projects:** pull the subtree; no re-install. A project that sets nothing behaves as before. A project detected or declared as JavaScript, TypeScript, C/C++ or C# no longer gets the Python syntax check; to keep it for Python tooling, declare `languages = ["javascript", "python"]`.
+
+### Added
+- **`check-command`** - replace or add any language's pre-push check step
+  - `[tool.repokit-common.check-command]` with `python = "ruff check ."`; `""` turns a step off
+  - a failing command blocks a gated branch and warns on any other
+- **Paradox game mods** - `languages = ["paradox"]` with `paradox-game = "ck3"` (or `vic3`, `imperator`)
+  - pre-push runs the game's Tiger linter on `mod/` when it is installed: one summary line, the full report in `.git/`, never blocking
+  - pre-commit blocks a localization `.yml` saved without a UTF-8 BOM, on every branch
+- **Pattern version targets** - keep a version line in any text file in step
+  - `pattern = '^version="([^"]*)"\r?$'` for a `descriptor.mod`; the same for `Cargo.toml` or `setup.py`
+  - only the version text changes; BOM and line endings are kept; a file without the line is skipped
+
+### Changed
+- **Language profiles are files** - `hooks/profiles/<language>.sh`, one per language
+  - adding a language is one new file; the hooks keep what every project shares
+  - a missing `profiles/` folder stops the hook instead of dropping every check
+- **The Python syntax check follows the project's languages** - it runs only when `python` is among them
+  - a project that sets nothing is still Python and keeps it
+
 ## [0.4.2] - 2026-10-26
 
 > **For consuming projects:** pull the subtree. Commits made in a git worktree are checked against the project's own `private-patterns` again, and the version step finds the project's version source there.
@@ -386,7 +408,8 @@ First consumer: `DazzleTools/dazzlelink` (file-association scripts live in `scri
 
 All project-specific hardcoding (`wtf-restarted`, `comfydbg`) was replaced with auto-detection or `$placeholder` variables. Project-level files (`.github/`, `CONTRIBUTING.md`, `.repokit.json`, `.vscode/`) were substituted with real values for `git-repokit-common`.
 
-[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.2...HEAD
+[Unreleased]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.3...HEAD
+[0.4.3]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.2...v0.4.3
 [0.4.2]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/DazzleTools/git-repokit-common/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/DazzleTools/git-repokit-common/compare/v0.3.6...v0.4.0

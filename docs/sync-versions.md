@@ -122,14 +122,35 @@ format = "base"         # browser manifests accept only X.Y.Z
 | Key | Default | Meaning |
 |-----|---------|---------|
 | `path` | (required) | The file, relative to the project root. A path outside the root is refused |
-| `type` | `"json"` | The only type so far |
-| `field` | `"version"` | The JSON key that holds the version string |
+| `type` | `"json"`, or `"pattern"` when `pattern` is given | `"json"` or `"pattern"` (below) |
+| `field` | `"version"` | JSON targets: the key that holds the version string |
+| `pattern` | (none) | Pattern targets: a regular expression with exactly one group, the version (below) |
 | `match` | `"one"` | `"one"`: the file must have exactly one such field (a second one is an error, so a file is never left half-updated); `"first"`: the first of several; `"all"`: every one |
 | `format` | `"human"` | `"human"`: `0.3.2-alpha`; `"base"`: `0.3.2`, the phase dropped |
 
 The targets follow every mode: a sync, `--bump`, `--set` and `--phase` write the new version; `--check` exits 1 while a target is stale; `--dry-run` writes nothing; `--auto` (the pre-commit hook) updates and stages them with the version file. The version written is the human form, never the build-stamped `__version__` string and never the PEP 440 form.
 
 Only the version strings change: each file is edited in place, so its formatting, key order, line endings (LF or CRLF) and any BOM survive, and a bump is a one-line diff per field. Every edit is cross-checked against a real JSON parse first. A missing field, a non-string value, a key repeated in one object, invalid JSON, or a field the edit cannot locate safely is reported and the file is left untouched; the other targets still sync and the run exits 1, even under `--auto`, so the hook shows the problem. An unknown key in an entry (a typo such as `feild`) is an error, not a silent no-op.
+
+#### Pattern targets: any text file
+
+A file that is not JSON -- a Paradox mod's `descriptor.mod`, a `Cargo.toml`, a `setup.py`, a CMake `project()` line -- names its version line with a `pattern` instead of a `field`:
+
+```toml
+[[tool.repokit-common.extra-targets]]
+path = "mod/descriptor.mod"
+pattern = '^version="([^"]*)"\r?$'
+format = "base"
+```
+
+- **The pattern** is a regular expression with **exactly one group**, the version. It is matched line by line: `^` and `$` mark the start and end of each line. Only the group's text changes, so every other byte of the file stays as it was, its BOM and line endings included. Write `\r?` before `$` and outside the group, as above, so a file with CRLF endings matches and keeps its `\r`. Use TOML's single-quoted strings, so the backslashes reach the expression as written.
+- **Anchor it.** `^version=` matches `version="1.0"` and not `supported_version="1.20.*"` on the line below; an unanchored `version="([^"]*)"` would match both and be refused.
+- **No matching line** is a note, `no line matches the pattern (skipped)`, not an error: the file is left alone and the run exits 0. Some formats make the version line optional (3 of 65 CK3 mods measured had none).
+- **More than one matching line** is refused, as for JSON, unless `match = "first"` or `match = "all"`.
+- `format` works as for JSON. A Paradox descriptor takes `"base"`, so the game's launcher shows `1.2.0` rather than `1.2.0-alpha`.
+- The file must be UTF-8 (a BOM is fine). A file in another encoding, such as a Windows `.rc` resource in codepage 1252, is reported and left untouched.
+
+The pattern above rewrote 62 of 62 real CK3 descriptors byte-for-byte in a measurement, with `supported_version` untouched in every one.
 
 Extra targets are opt-in: a project that declares none sees no change in behaviour or output.
 
@@ -227,7 +248,8 @@ The script updates these links automatically. It does **not** modify section hea
 
 ### pre-commit
 
-Runs `sync-versions.py --auto` to update `__version__` with the pending commit's metadata. Also:
+Runs `sync-versions.py --auto` to update `__version__` with the pending commit's metadata, and stages the extra targets it updated. Also:
+- Runs each language's pre-commit check (a Paradox mod: localization `.yml` without a UTF-8 BOM)
 - Blocks private files from public branches
 - Blocks files > 10MB
 
@@ -237,9 +259,9 @@ Runs `sync-versions.py --auto` again to update the commit hash (which isn't know
 
 ### pre-push
 
-Does **not** run sync-versions. Instead:
-- Validates Python syntax
-- Runs pytest
+Does **not** run sync-versions. Instead, for each of the project's languages (see the README's `languages` and `check-command`):
+- Runs the language's check step (Python: the syntax check; a Paradox mod: Tiger)
+- Runs the tests (pytest, or the project's `test-command`)
 - Checks for debug statements
 
 ## Flags Reference

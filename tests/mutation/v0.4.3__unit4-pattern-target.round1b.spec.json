@@ -1,0 +1,27 @@
+{
+ "test_command": [
+  "python",
+  "-m",
+  "pytest",
+  "-q",
+  "-p",
+  "no:cacheprovider",
+  "tests/test_sync_versions_extra_targets.py"
+ ],
+ "mutations": [
+  {
+   "id": "M9",
+   "file": "sync-versions.py",
+   "original": "spans = spans[:1]",
+   "mutated": "spans = spans[-1:]",
+   "note": "match='first' updates the last occurrence."
+  },
+  {
+   "id": "M11",
+   "file": "sync-versions.py",
+   "original": "for start, end, _ in reversed(spans):",
+   "mutated": "for start, end, _ in spans:",
+   "note": "Forward splicing: a length change shifts later offsets under match='all'."
+  }
+ ]
+}

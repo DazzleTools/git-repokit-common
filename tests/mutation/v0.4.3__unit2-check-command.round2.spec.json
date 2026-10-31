@@ -1,0 +1,11 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_repokit_config.py", "tests/test_pre_push_hook.py", "-k", "check_command or languages or python or javascript or c_cpp or syntax or typescript"],
+ "mutations": [
+  {"id": "R1", "file": "repokit_config.py", "original": "f\"{k}\\t{v}\"", "mutated": "f\"{k} {v}\"", "note": "Join-format separator: --get check-command emits 'language command' with a space instead of a tab."},
+  {"id": "R2", "file": "repokit_config.py", "original": "        if key == \"check-command\":\n            # One \"language<TAB>command\" line each", "mutated": "        if key == \"check_command\":\n            # One \"language<TAB>command\" line each", "note": "Guard typo (underscore): --get check-command goes down the generic path and prints the raw dict."},
+  {"id": "R3", "file": "repokit_config.py", "original": "            if key == \"check-command\":\n                # REPOKIT_CHECK_COMMAND names", "mutated": "            if key == \"check-commands\":\n                # REPOKIT_CHECK_COMMAND names", "note": "Guard variant in --shell: no REPOKIT_CHECK_COMMAND_<LANGUAGE> variables are emitted."},
+  {"id": "R4", "file": "repokit_config.py", "original": "{_var_name(key + '-' + lang)}", "mutated": "{_var_name(lang + '-' + key)}", "note": "Swapped arguments: REPOKIT_PYTHON_CHECK_COMMAND instead of REPOKIT_CHECK_COMMAND_PYTHON."},
+  {"id": "R5", "file": "hooks/pre-push", "original": "        python) _rk_python_syntax ;;", "mutated": "        *) _rk_python_syntax ;;", "note": "Default dispatch widened: every language with no check-command gets the Python syntax check."},
+  {"id": "R6", "file": "hooks/pre-push", "original": "    if [ -z \"$_rk_cc\" ]; then", "mutated": "    if [ -z \"$_rk_lang\" ]; then", "note": "Wrong variable in the empty test: an empty command runs sh -c \"\" and reports passed."}
+ ]
+}

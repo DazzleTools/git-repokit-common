@@ -768,9 +768,22 @@ def update_changelog_links(
 # The file is edited in place (only the version strings change), so its
 # formatting, key order, line endings and BOM survive and a bump is a
 # one-line diff. Every edit is cross-checked against a real JSON parse.
+#
+# Any other text file takes a `pattern` instead of `field` (type = "pattern"
+# is then implied): a regular expression with exactly one group, matched line
+# by line (^ and $ at each line), whose group is the version. Only the group's
+# text changes. A Paradox descriptor.mod, for instance:
+#
+#   [[tool.repokit-common.extra-targets]]
+#   path    = "mod/descriptor.mod"
+#   pattern = '^version="([^"]*)"\r?$'   # \r? outside the group keeps CRLF
+#   format  = "base"
+#
+# A file with no matching line is noted and skipped, not an error (a version
+# line is optional in some formats); `match` and `format` work as for JSON.
 
-_TARGET_KEYS = {"path", "type", "field", "match", "format"}
-_TARGET_TYPES = {"json"}
+_TARGET_KEYS = {"path", "type", "field", "pattern", "match", "format"}
+_TARGET_TYPES = {"json", "pattern"}
 _TARGET_MATCHES = {"one", "first", "all"}
 _TARGET_FORMATS = {"human", "base"}
 _UTF8_BOM = b"\xef\xbb\xbf"
@@ -795,7 +808,7 @@ def _target_spec(spec, root: Path) -> dict:
         raise TargetError("missing 'path'")
     s = {
         "path": path,
-        "type": spec.get("type", "json"),
+        "type": spec.get("type", "pattern" if "pattern" in spec else "json"),
         "field": spec.get("field", "version"),
         "match": spec.get("match", "one"),
         "format": spec.get("format", "human"),
@@ -805,6 +818,21 @@ def _target_spec(spec, root: Path) -> dict:
         if s[key] not in valid:
             raise TargetError(
                 f"{key} = {s[key]!r} (expected: {', '.join(sorted(valid))})")
+    if s["type"] == "pattern":
+        if "field" in spec:
+            raise TargetError("'field' is for json targets; a pattern target's group is the version")
+        pattern = spec.get("pattern")
+        if not isinstance(pattern, str) or not pattern:
+            raise TargetError("a pattern target needs a non-empty 'pattern'")
+        try:
+            s["regex"] = re.compile(pattern, re.MULTILINE)
+        except re.error as e:
+            raise TargetError(f"pattern is not a valid regular expression: {e}") from None
+        if s["regex"].groups != 1:
+            raise TargetError(
+                f"pattern must have exactly one group, the version (it has {s['regex'].groups})")
+    elif "pattern" in spec:
+        raise TargetError("'pattern' is for pattern targets; a json target names its 'field'")
     if not isinstance(s["field"], str) or not s["field"]:
         raise TargetError("'field' must be a non-empty string")
     real_root = root.resolve()
@@ -871,10 +899,16 @@ def _json_field_spans(text: str, field: str) -> list[tuple[int, int, str]]:
     return spans
 
 
+def _pattern_spans(text: str, regex) -> list[tuple[int, int, str]]:
+    """(start, end, value) of the version group in each line ``regex`` matches."""
+    return [(m.start(1), m.end(1), m.group(1)) for m in regex.finditer(text)]
+
+
 def sync_extra_target(spec, components: dict, root: Path,
                       check: bool = False, dry_run: bool = False) -> str:
     """Check or update one extra target. Returns "ok", "stale" (check mode),
-    or "updated" (a write happened, or would have under dry_run).
+    "updated" (a write happened, or would have under dry_run), or "absent"
+    (a pattern target's file has no matching line: nothing to keep in step).
 
     Raises TargetError when the target cannot be handled safely; the file is
     then left untouched.
@@ -882,12 +916,19 @@ def sync_extra_target(spec, components: dict, root: Path,
     s = _target_spec(spec, root)
     version = _target_version(s, components)
     bom, text = _read_json_text(s["file"])
-    spans = _json_field_spans(text, s["field"])
-    if not spans:
-        raise TargetError(f"no '{s['field']}' field")
+    if s["type"] == "pattern":
+        spans = _pattern_spans(text, s["regex"])
+        if not spans:
+            return "absent"
+        what = "lines match the pattern"
+    else:
+        spans = _json_field_spans(text, s["field"])
+        if not spans:
+            raise TargetError(f"no '{s['field']}' field")
+        what = f"'{s['field']}' fields"
     if s["match"] == "one" and len(spans) > 1:
         raise TargetError(
-            f"{len(spans)} '{s['field']}' fields; set match = \"all\" or \"first\"")
+            f"{len(spans)} {what}; set match = \"all\" or \"first\"")
     if s["match"] in ("one", "first"):
         spans = spans[:1]
 
@@ -1215,7 +1256,10 @@ def main():
             target_errors += 1
             all_synced = False
             continue
-        if status == "stale":
+        if status == "absent":
+            if not quiet:
+                print(f"  [--] {label}: no line matches the pattern (skipped)")
+        elif status == "stale":
             all_synced = False
             print(f"  [X] {label}: version is not "
                   f"{_target_version(_target_spec(spec, root), components)}")

@@ -1,0 +1,9 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_pre_push_hook.py", "-k", "profile or outside_the_profiles"],
+ "mutations": [
+  {"id": "P1", "file": "hooks/lib.sh", "original": "[ -d \"$RK_PROFILES_DIR\" ] || return 1", "mutated": "[ -d \"$RK_PROFILES_DIR\" ] || return 0", "note": "A missing profiles folder is carried on through."},
+  {"id": "P2", "file": "hooks/lib.sh", "original": "[ -f \"$RK_PROFILES_DIR/$_rk_lp.sh\" ] && . \"$RK_PROFILES_DIR/$_rk_lp.sh\"", "mutated": "[ -f \"$RK_PROFILES_DIR/$_rk_lp.sh\" ] && :", "note": "Profiles are never sourced."},
+  {"id": "P3", "file": "hooks/lib.sh", "original": "case \"$_rk_lp\" in *[!a-z0-9-]*|\"\") continue ;; esac", "mutated": ":", "note": "Language names are not filtered: a path reaches outside."},
+  {"id": "P4", "file": "hooks/profiles/paradox.sh", "original": "    _rk_nocolor=\"\"\n    [ \"$_rk_mode\" = rich ] || _rk_nocolor=--no-color", "mutated": "    _rk_nocolor=()\n    [ \"$_rk_mode\" = rich ] || _rk_nocolor+=(--no-color)", "note": "A bash array back in a POSIX profile."}
+ ]
+}

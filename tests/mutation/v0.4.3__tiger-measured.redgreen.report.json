@@ -1,0 +1,134 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_pre_push_hook.py",
+      "-k",
+      "paradox or tiger"
+    ],
+    "timestamp": "2026-10-30T17:10:05-04:00"
+  },
+  "results": [
+    {
+      "id": "T1",
+      "file": "hooks/pre-push",
+      "note": "ck3 given the folder (the call before the measurement).",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ngs_are_summar0')\n\n    def test_tiger_findings_are_summarized_and_never_block(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger is advisory: findings on main\n        (Tiger still exits 0) are shown as its summary with a warning, an old\n        Tiger's version banner becomes one note, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, fatal=2, error=5, old=True)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert \"[!] ck3-tiger: fatal: 2, error: 5, warning: 3, untidy: 0, tips: 0 (not blocking)\" in out\nE       AssertionError: assert '[!] ck3-tiger: fatal: 2, error: 5, warning: 3, untidy: 0, tips: 0 (not blocking)' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod)...\\nTIG... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:337: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block\n2 failed, 7 passed, 45 deselected in 15.04s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block"
+      ]
+    },
+    {
+      "id": "T2",
+      "file": "hooks/pre-push",
+      "note": "Colour codes into captured output.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": " [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n        assert expected in out\n        if \"Linting\" in expected:\n            # vic3-tiger takes the mod folder (here the root), not the descriptor file\n            assert \"vic3-tiger: fatal: 0, error: 0\" in out\n>           assert \"TIGER-RAN --no-color .\" in _tiger_report(repo, \"vic3-tiger\")\nE           AssertionError: assert 'TIGER-RAN --no-color .' in 'TIGER-RAN .\\nfatal: 0, error: 0, warning: 3, untidy: 0, tips: 0\\n'\nE            +  where 'TIGER-RAN .\\nfatal: 0, error: 0, warning: 3, untidy: 0, tips: 0\\n' = _tiger_report((WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14643/test_the_paradox_game_and_the_0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14643/test_the_paradox_game_and_the_0/remote.git')), 'vic3-tiger')\n\ntests\\test_pre_push_hook.py:379: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\n2 failed, 7 passed, 45 deselected in 16.18s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ]
+    },
+    {
+      "id": "T3",
+      "file": "hooks/pre-push",
+      "note": "The whole report streamed into the push.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "emp/pytest-of-Extreme/pytest-14644/test_a_tiger_that_cannot_run_i0')\n\n    def test_a_tiger_that_cannot_run_is_reported_and_never_blocks(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger exits 1 only when it cannot run (a\n        bad path, no game): the push says the mod was not linted, shows Tiger's\n        own words, and goes through.\"\"\"\n        env = _stub_tiger(tmp_path, fail=True)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert \"ck3-tiger could not run (exit 1) -- the mod was not linted; not blocking\" in out\nE       AssertionError: assert 'ck3-tiger could not run (exit 1) -- the mod was not linted; not blocking' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod/descript... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:348: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks\n2 failed, 7 passed, 45 deselected in 15.57s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks"
+      ]
+    },
+    {
+      "id": "T4",
+      "file": "hooks/pre-push",
+      "note": "A Tiger that cannot run is not reported.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "st_a_tiger_that_cannot_run_i0/remote.git'))\ntmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14645/test_a_tiger_that_cannot_run_i0')\n\n    def test_a_tiger_that_cannot_run_is_reported_and_never_blocks(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger exits 1 only when it cannot run (a\n        bad path, no game): the push says the mod was not linted, shows Tiger's\n        own words, and goes through.\"\"\"\n        env = _stub_tiger(tmp_path, fail=True)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert \"ck3-tiger could not run (exit 1) -- the mod was not linted; not blocking\" in out\nE       AssertionError: assert 'ck3-tiger could not run (exit 1) -- the mod was not linted; not blocking' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod/descript... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:348: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks\n1 failed, 8 passed, 45 deselected in 15.69s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks"
+      ]
+    },
+    {
+      "id": "T5",
+      "file": "hooks/pre-push",
+      "note": "The version banner is dropped.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "xtreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14646/test_tiger_findings_are_summar0')\n\n    def test_tiger_findings_are_summarized_and_never_block(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger is advisory: findings on main\n        (Tiger still exits 0) are shown as its summary with a warning, an old\n        Tiger's version banner becomes one note, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, fatal=2, error=5, old=True)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n        assert r.returncode == 0 and landed, out\n        assert \"[!] ck3-tiger: fatal: 2, error: 5, warning: 3, untidy: 0, tips: 0 (not blocking)\" in out\n>       assert \"ck3-tiger is older than the game it found\" in out\nE       AssertionError: assert 'ck3-tiger is older than the game it found' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod/descript... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:338: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block\n1 failed, 8 passed, 45 deselected in 16.59s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block"
+      ]
+    },
+    {
+      "id": "T6",
+      "file": "hooks/pre-push",
+      "note": "Findings shown as OK.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "h = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14647/test_tiger_findings_are_summar0')\n\n    def test_tiger_findings_are_summarized_and_never_block(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger is advisory: findings on main\n        (Tiger still exits 0) are shown as its summary with a warning, an old\n        Tiger's version banner becomes one note, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, fatal=2, error=5, old=True)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert \"[!] ck3-tiger: fatal: 2, error: 5, warning: 3, untidy: 0, tips: 0 (not blocking)\" in out\nE       AssertionError: assert '[!] ck3-tiger: fatal: 2, error: 5, warning: 3, untidy: 0, tips: 0 (not blocking)' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod/descript... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:337: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block\n1 failed, 8 passed, 45 deselected in 15.87s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block"
+      ]
+    },
+    {
+      "id": "T7",
+      "file": "hooks/pre-push",
+      "note": "vic3 given the descriptor file instead of the folder.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "\\n\"}, \"paradox: no descriptor.mod in mod/ or at the root\"),\n    ])\n    def test_the_paradox_game_and_the_mod_folder_choose_the_linter(repo, tmp_path, cfg_extra, files, expected):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- paradox-game picks the Tiger build (vic3\n        lints a mod whose descriptor.mod sits at the root); a game with no Tiger,\n        no game, or no descriptor.mod each say why nothing ran, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, name=\"vic3-tiger\")\n        cfg = '[tool.repokit-common]\\nlanguages = [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert expected in out\nE       AssertionError: assert 'Linting the mod with vic3-tiger (.)' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with vic3-tiger (./descripto... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:375: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\n1 failed, 8 passed, 45 deselected in 17.15s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 7
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks": [
+        "T1",
+        "T2",
+        "T3"
+      ],
+      "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks": [
+        "T3",
+        "T4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]": [
+        "T2",
+        "T7"
+      ],
+      "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block": [
+        "T1",
+        "T5",
+        "T6"
+      ]
+    },
+    "identical": [],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

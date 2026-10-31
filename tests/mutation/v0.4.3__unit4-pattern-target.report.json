@@ -1,0 +1,485 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_sync_versions_extra_targets.py"
+    ],
+    "timestamp": "2026-10-30T13:14:02-04:00"
+  },
+  "results": [
+    {
+      "id": "M1",
+      "file": "sync-versions.py",
+      "note": "The implied type dropped: a pattern-only spec defaults to json and is refused.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "n_rewrites_only_the_version_group_byte_for_byte[lf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n13 failed, 33 passed in 3.94s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ]
+    },
+    {
+      "id": "M2",
+      "file": "sync-versions.py",
+      "note": "An empty pattern is no longer refused by name.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "]*)\"$'}, \"exactly one group\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^version=\"(['}, \"not a valid regular expression\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": \"\"}, \"non-empty 'pattern'\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"field\": \"version\"}, \"'field' is for json\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"type\": \"json\"}, \"'pattern' is for pattern\"),\n        ({\"path\": \"descriptor.mod\", \"type\": \"pattern\"}, \"non-empty 'pattern'\"),\n    ])\n    def test_bad_pattern_entries_are_named_not_guessed(tmp_path, spec, message):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- a pattern with no group or two, an invalid\n        one, a missing one, or one mixed with a JSON field is an error naming the\n        problem, and the file is untouched.\"\"\"\n        f = _target(tmp_path, DESCRIPTOR, \"descriptor.mod\")\n>       with pytest.raises(SV.TargetError, match=message):\nE       AssertionError: Regex pattern did not match.\nE        Regex: \"non-empty 'pattern'\"\nE        Input: 'pattern must have exactly one group, the version (it has 0)'\n\ntests\\test_sync_versions_extra_targets.py:275: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']\n1 failed, 45 passed in 3.70s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ]
+    },
+    {
+      "id": "M3",
+      "file": "sync-versions.py",
+      "note": "No MULTILINE: ^ and $ anchor only to the whole file.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ch\", \"--no-git-ver\")\n        assert r.returncode == 0, r.stdout + r.stderr\n>       assert (root / \"mod\" / \"descriptor.mod\").read_bytes() == (\n            b\"\\xef\\xbb\\xbf\" + DESCRIPTOR.replace('version=\"0.3.1\"', 'version=\"0.3.2\"').encode(\"utf-8\"))\nE       assert b'\\xef\\xbb\\xb...2216746850\"\\n' == b'\\xef\\xbb\\xb...2216746850\"\\n'\nE         \nE         At index 16 diff: b'1' != b'2'\nE         Use -v to get more diff\n\ntests\\test_sync_versions_extra_targets.py:370: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n7 failed, 39 passed in 3.43s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ]
+    },
+    {
+      "id": "M4",
+      "file": "sync-versions.py",
+      "note": "Two or more groups accepted.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": ": '^version=\"[^\"]*\"$'}, \"exactly one group\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^(version)=\"([^\"]*)\"$'}, \"exactly one group\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^version=\"(['}, \"not a valid regular expression\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": \"\"}, \"non-empty 'pattern'\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"field\": \"version\"}, \"'field' is for json\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"type\": \"json\"}, \"'pattern' is for pattern\"),\n        ({\"path\": \"descriptor.mod\", \"type\": \"pattern\"}, \"non-empty 'pattern'\"),\n    ])\n    def test_bad_pattern_entries_are_named_not_guessed(tmp_path, spec, message):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- a pattern with no group or two, an invalid\n        one, a missing one, or one mixed with a JSON field is an error naming the\n        problem, and the file is untouched.\"\"\"\n        f = _target(tmp_path, DESCRIPTOR, \"descriptor.mod\")\n>       with pytest.raises(SV.TargetError, match=message):\nE       Failed: DID NOT RAISE <class 'sync_versions_et.TargetError'>\n\ntests\\test_sync_versions_extra_targets.py:275: Failed\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]\n1 failed, 45 passed in 3.49s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]"
+      ]
+    },
+    {
+      "id": "M5",
+      "file": "sync-versions.py",
+      "note": "A json target carrying 'pattern' is accepted and the pattern ignored.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "}, \"exactly one group\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^version=\"(['}, \"not a valid regular expression\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": \"\"}, \"non-empty 'pattern'\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"field\": \"version\"}, \"'field' is for json\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"type\": \"json\"}, \"'pattern' is for pattern\"),\n        ({\"path\": \"descriptor.mod\", \"type\": \"pattern\"}, \"non-empty 'pattern'\"),\n    ])\n    def test_bad_pattern_entries_are_named_not_guessed(tmp_path, spec, message):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- a pattern with no group or two, an invalid\n        one, a missing one, or one mixed with a JSON field is an error naming the\n        problem, and the file is untouched.\"\"\"\n        f = _target(tmp_path, DESCRIPTOR, \"descriptor.mod\")\n>       with pytest.raises(SV.TargetError, match=message):\nE       AssertionError: Regex pattern did not match.\nE        Regex: \"'pattern' is for pattern\"\nE        Input: 'invalid JSON: Expecting value: line 1 column 1 (char 0)'\n\ntests\\test_sync_versions_extra_targets.py:275: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]\n1 failed, 45 passed in 4.03s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]"
+      ]
+    },
+    {
+      "id": "M6",
+      "file": "sync-versions.py",
+      "note": "The whole match replaced, not the group.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "tch\", \"--no-git-ver\")\n        assert r.returncode == 0, r.stdout + r.stderr\n>       assert (root / \"mod\" / \"descriptor.mod\").read_bytes() == (\n            b\"\\xef\\xbb\\xbf\" + DESCRIPTOR.replace('version=\"0.3.1\"', 'version=\"0.3.2\"').encode(\"utf-8\"))\nE       assert b'\\xef\\xbb\\xb...2216746850\"\\n' == b'\\xef\\xbb\\xb...2216746850\"\\n'\nE         \nE         At index 3 diff: b'0' != b'v'\nE         Use -v to get more diff\n\ntests\\test_sync_versions_extra_targets.py:370: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n7 failed, 39 passed in 3.95s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ]
+    },
+    {
+      "id": "M7",
+      "file": "sync-versions.py",
+      "note": "No matching line reported as in sync.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "\"descriptor.mod\").read_bytes() == (\n            b\"\\xef\\xbb\\xbf\" + DESCRIPTOR.replace('version=\"0.3.1\"', 'version=\"0.3.2\"').encode(\"utf-8\"))\n>       assert \"other/descriptor.mod: no line matches the pattern (skipped)\" in r.stdout\nE       AssertionError: assert 'other/descriptor.mod: no line matches the pattern (skipped)' in 'Bumping patch: 0.3.1 -> 0.3.2\\nVersion: 0.3.2  (PEP 440: 0.3.2, tag: v0.3.2)\\n  [OK] mypkg/_version.py: components updated\\n  [OK] mod/descriptor.mod: version updated\\n\\nUpdated 2 file(s)\\n'\nE        +  where 'Bumping patch: 0.3.1 -> 0.3.2\\nVersion: 0.3.2  (PEP 440: 0.3.2, tag: v0.3.2)\\n  [OK] mypkg/_version.py: components updated\\n  [OK] mod/descriptor.mod: version updated\\n\\nUpdated 2 file(s)\\n' = CompletedProcess(args=['C:\\\\Python312\\\\python.exe', 'scripts/sync-versions.py', '--bump', 'patch', '--no-git-ver'], re...] mypkg/_version.py: components updated\\n  [OK] mod/descriptor.mod: version updated\\n\\nUpdated 2 file(s)\\n', stderr='').stdout\n\ntests\\test_sync_versions_extra_targets.py:372: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n2 failed, 44 passed in 3.74s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ]
+    },
+    {
+      "id": "M8",
+      "file": "sync-versions.py",
+      "note": "Two matches under match='one' no longer refused.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ll_sync ________\n\ntmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14615/test_a_bad_target_is_loud_unde0')\n\n    def test_a_bad_target_is_loud_under_auto_and_the_others_still_sync(tmp_path):\n        \"\"\"CONSEQUENCE: 7 (safety) -- a broken target is reported on stderr with\n        exit 1 even in quiet hook mode, and the good targets are still updated.\"\"\"\n        root = _project(tmp_path, BOTH_TARGETS.replace('match = \"all\"\\n', \"\"))\n        (root / \"mypkg\" / \"_version.py\").write_text(\n            VERSION_PY.replace(\"PATCH = 1\", \"PATCH = 2\"), encoding=\"utf-8\")\n        r = _run(root, \"--auto\", \"--no-git-ver\")\n>       assert r.returncode == 1\nE       AssertionError: assert 0 == 1\nE        +  where 0 = CompletedProcess(args=['C:\\\\Python312\\\\python.exe', 'scripts/sync-versions.py', '--auto', '--no-git-ver'], returncode=0, stdout='', stderr='').returncode\n\ntests\\test_sync_versions_extra_targets.py:338: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_a_refused_target_is_left_byte_identical\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_a_bad_target_is_loud_under_auto_and_the_others_still_sync\n3 failed, 43 passed in 3.68s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_a_bad_target_is_loud_under_auto_and_the_others_still_sync",
+        "tests/test_sync_versions_extra_targets.py::test_a_refused_target_is_left_byte_identical",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ]
+    },
+    {
+      "id": "M9",
+      "file": "sync-versions.py",
+      "note": "match='first' updates the last occurrence.",
+      "verdict": "survived",
+      "restore_ok": true,
+      "output_tail": ""
+    },
+    {
+      "id": "M10",
+      "file": "sync-versions.py",
+      "note": "match='all' reports ok when only one occurrence is current.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ES ===================================\n_________ test_pattern_matching_two_lines_is_refused_unless_match_all _________\n\ntmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14617/test_pattern_matching_two_line0')\n\n    def test_pattern_matching_two_lines_is_refused_unless_match_all(tmp_path):\n        \"\"\"CONSEQUENCE: 8 (safety) -- a pattern that matches more than one line is\n        refused untouched; match = \"all\" updates every one, \"first\" the first.\"\"\"\n        text = DESCRIPTOR + 'version=\"0.3.1\"\\n'\n        f = _target(tmp_path, text, \"descriptor.mod\")\n        with pytest.raises(SV.TargetError, match='2 lines match the pattern; set match = \"all\"'):\n            _sync(tmp_path, DESC_SPEC)\n        assert f.read_text(encoding=\"utf-8\") == text\n        assert _sync(tmp_path, dict(DESC_SPEC, match=\"first\")) == \"updated\"\n        assert f.read_text(encoding=\"utf-8\").count('version=\"0.3.2\"') == 1\n>       assert _sync(tmp_path, dict(DESC_SPEC, match=\"all\")) == \"updated\"\nE       AssertionError: assert 'ok' == 'updated'\nE         \nE         - updated\nE         + ok\n\ntests\\test_sync_versions_extra_targets.py:243: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\n1 failed, 45 passed in 3.62s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ]
+    },
+    {
+      "id": "M11",
+      "file": "sync-versions.py",
+      "note": "Forward splicing: a length change shifts later offsets under match='all'.",
+      "verdict": "survived",
+      "restore_ok": true,
+      "output_tail": ""
+    },
+    {
+      "id": "M12",
+      "file": "sync-versions.py",
+      "note": "The preserved BOM is dropped on write.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "gets)\n        (root / \"mod\").mkdir()\n        (root / \"other\").mkdir()\n        (root / \"mod\" / \"descriptor.mod\").write_bytes(b\"\\xef\\xbb\\xbf\" + DESCRIPTOR.encode(\"utf-8\"))\n        no_line = DESCRIPTOR.replace('version=\"0.3.1\"\\n', \"\")\n        (root / \"other\" / \"descriptor.mod\").write_text(no_line, encoding=\"utf-8\")\n        r = _run(root, \"--bump\", \"patch\", \"--no-git-ver\")\n        assert r.returncode == 0, r.stdout + r.stderr\n>       assert (root / \"mod\" / \"descriptor.mod\").read_bytes() == (\n            b\"\\xef\\xbb\\xbf\" + DESCRIPTOR.replace('version=\"0.3.1\"', 'version=\"0.3.2\"').encode(\"utf-8\"))\nE       assert b'version=\"0....2216746850\"\\n' == b'\\xef\\xbb\\xb...2216746850\"\\n'\nE         \nE         At index 0 diff: b'v' != b'\\xef'\nE         Use -v to get more diff\n\ntests\\test_sync_versions_extra_targets.py:370: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_a_utf8_bom_survives_the_edit\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n4 failed, 42 passed in 3.49s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_a_utf8_bom_survives_the_edit",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 10,
+    "survived": 2
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_sync_versions_extra_targets.py::test_a_bad_target_is_loud_under_auto_and_the_others_still_sync": [
+        "M8"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_a_refused_target_is_left_byte_identical": [
+        "M8"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_a_utf8_bom_survives_the_edit": [
+        "M12"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]": [
+        "M1"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]": [
+        "M1",
+        "M4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]": [
+        "M1"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']": [
+        "M1",
+        "M2"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]": [
+        "M1"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]": [
+        "M5"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line": [
+        "M1",
+        "M12",
+        "M3",
+        "M6",
+        "M7"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format": [
+        "M1",
+        "M3",
+        "M6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all": [
+        "M1",
+        "M10",
+        "M3",
+        "M6",
+        "M8"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]": [
+        "M1",
+        "M12",
+        "M3",
+        "M6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]": [
+        "M1",
+        "M3",
+        "M6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]": [
+        "M1",
+        "M12",
+        "M3",
+        "M6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]": [
+        "M1",
+        "M3",
+        "M6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error": [
+        "M1",
+        "M7"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_sync_versions_extra_targets.py::test_a_bad_target_is_loud_under_auto_and_the_others_still_sync",
+        "tests/test_sync_versions_extra_targets.py::test_a_refused_target_is_left_byte_identical"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ]
+    ],
+    "contained": [
+      [
+        "tests/test_sync_versions_extra_targets.py::test_a_bad_target_is_loud_under_auto_and_the_others_still_sync",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_a_refused_target_is_left_byte_identical",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_a_utf8_bom_survives_the_edit",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_a_utf8_bom_survives_the_edit",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_a_utf8_bom_survives_the_edit",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ]
+    ],
+    "killed_without_names": []
+  }
+}

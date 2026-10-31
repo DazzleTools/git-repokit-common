@@ -1,0 +1,51 @@
+{
+ "test_command": [
+  "python",
+  "-m",
+  "pytest",
+  "-q",
+  "-p",
+  "no:cacheprovider",
+  "tests/test_repokit_config.py",
+  "tests/test_pre_push_hook.py",
+  "-k",
+  "check_command"
+ ],
+ "mutations": [
+  {
+   "id": "M1",
+   "file": "repokit_config.py",
+   "original": "    value = table.get(\"check-command\")\n    if value is None:",
+   "mutated": "    value = table.get(\"check-command\")\n    if not value:",
+   "note": "None-vs-truthiness: a falsy non-table value (e.g. check-command = \"\") is silently treated as unset instead of raising ConfigError."
+  },
+  {
+   "id": "M2",
+   "file": "repokit_config.py",
+   "original": "    if not isinstance(value, dict) or not all(isinstance(v, str) for v in value.values()):",
+   "mutated": "    if not isinstance(value, dict):",
+   "note": "Removed guard clause: non-string commands (python = 1, python = true) are accepted instead of refused."
+  },
+  {
+   "id": "M4",
+   "file": "repokit_config.py",
+   "original": "            return \"\\n\".join(f\"{k}\\t{v}\" for k, v in commands.items()) if commands else None",
+   "mutated": "            return \"\\n\".join(f\"{k}\\t{v}\" for k, v in commands.items()) if commands else \"\"",
+   "note": "None vs empty string: --get check-command with no table prints a blank line instead of nothing."
+  },
+  {
+   "id": "M9",
+   "file": "hooks/pre-push",
+   "original": "| tr -c 'A-Z0-9' '_')\"",
+   "mutated": ")\"",
+   "note": "Dropped normalization: a language name with a non-alphanumeric character (e.g. c-cpp) builds an invalid/mismatched variable name, so its command is never found."
+  },
+  {
+   "id": "M11",
+   "file": "hooks/pre-push",
+   "original": "            _rk_check_failing \"$_rk_lang\"\n        fi\n        continue",
+   "mutated": "            _rk_check_failing \"$_rk_lang\"\n        fi",
+   "note": "Missing continue: after a check-command runs, the language's default step (python syntax check) also runs, though the command was meant to replace it."
+  }
+ ]
+}

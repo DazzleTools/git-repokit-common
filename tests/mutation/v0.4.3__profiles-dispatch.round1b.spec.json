@@ -1,0 +1,29 @@
+{
+ "test_command": [
+  "python",
+  "-m",
+  "pytest",
+  "-q",
+  "-p",
+  "no:cacheprovider",
+  "tests/test_pre_push_hook.py",
+  "-k",
+  "two_language or c_cpp_project"
+ ],
+ "mutations": [
+  {
+   "id": "M3",
+   "file": "hooks/lib.sh",
+   "original": "        [ -f \"$RK_PROFILES_DIR/$_rk_lp.sh\" ] && . \"$RK_PROFILES_DIR/$_rk_lp.sh\"",
+   "mutated": "        [ -f \"$RK_PROFILES_DIR/$_rk_lp.sh\" ] && . \"$RK_PROFILES_DIR/$_rk_lp.sh\" && break",
+   "note": "Only the first existing profile is loaded."
+  },
+  {
+   "id": "M5",
+   "file": "hooks/lib.sh",
+   "original": "    _rk_pf=\"rk_profile_$(printf '%s' \"$1\" | tr -c 'A-Za-z0-9' '_')_$2\"",
+   "mutated": "    _rk_pf=\"rk_profile_$(printf '%s' \"$1\" | tr -c 'A-Za-z0-9-' '_')_$2\"",
+   "note": "c-cpp's hyphen is kept: its functions are never found."
+  }
+ ]
+}

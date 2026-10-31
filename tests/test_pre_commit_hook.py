@@ -51,6 +51,7 @@ def repo(tmp_path):
     hooks.mkdir(exist_ok=True)
     shutil.copy(HOOK, hooks / "pre-commit")
     shutil.copy(HOOK.parent / "lib.sh", hooks / "lib.sh")  # the hook sources it from beside itself
+    shutil.copytree(HOOK.parent / "profiles", hooks / "profiles")  # and each language's profile
     (hooks / "pre-commit").chmod(0o755)
     (root / "README.md").write_text("seed\n")
     _git(root, "add", "README.md")
@@ -399,6 +400,94 @@ def test_the_first_commit_on_a_new_private_branch_is_treated_as_private(repo):
     result = _commit(root, hooks, "private/notes.md")
     assert result.returncode == 0, result.stdout + result.stderr
     assert "Checking for private content on branch: private" in result.stdout + result.stderr
+
+
+PARADOX = '[tool.repokit-common]\nlanguages = ["paradox"]\nparadox-game = "ck3"\n'
+LOC = b'l_english:\n demo_key:0 "Demo"\n'
+BOM = b"\xef\xbb\xbf"
+
+
+@pytest.mark.parametrize("branch", ["main", "local"])
+@pytest.mark.parametrize("folder", ["localization", "localisation"])
+def test_a_paradox_localization_file_without_a_bom_is_blocked(repo, branch, folder):
+    """CONSEQUENCE: 8 (safety) -- a mod's localization .yml staged without a
+    UTF-8 BOM stops the commit and is named, on a public and a private branch
+    alike, under either spelling of the folder: the game would skip the file
+    without an error."""
+    root, hooks = repo
+    _configure(root, raw=PARADOX)
+    if branch != "main":
+        _git(root, "checkout", "-q", "-b", branch)
+    name = f"mod/{folder}/english/demo_l_english.yml"
+    result = _commit(root, hooks, name, LOC)
+    out = result.stdout + result.stderr
+    assert result.returncode != 0, out
+    assert "COMMIT BLOCKED - localization file without a UTF-8 BOM" in out and name in out
+    assert not _in_head(root, name)
+
+
+def test_a_paradox_localization_file_with_a_bom_commits(repo):
+    """CONSEQUENCE: 7 (behaviour) -- the same file saved with its BOM commits."""
+    root, hooks = repo
+    _configure(root, raw=PARADOX)
+    name = "mod/localization/english/demo_l_english.yml"
+    result = _commit(root, hooks, name, BOM + LOC)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _in_head(root, name)
+
+
+def test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked(repo):
+    """CONSEQUENCE: 8 (safety) -- the common way a BOM is lost is an editor
+    re-saving an existing file, so a modified file is checked, not only a new one."""
+    root, hooks = repo
+    _configure(root, raw=PARADOX)
+    name = "mod/localization/english/demo_l_english.yml"
+    assert _commit(root, hooks, name, BOM + LOC).returncode == 0
+    result = _commit(root, hooks, name, LOC + b' other_key:0 "Other"\n')
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert name in result.stdout + result.stderr
+
+
+def test_the_bom_check_reads_the_staged_content_not_the_working_file(repo):
+    """CONSEQUENCE: 7 (safety) -- fixing the working file without staging it
+    does not get the BOM-less staged copy through."""
+    root, hooks = repo
+    _configure(root, raw=PARADOX)
+    name = "mod/localization/english/demo_l_english.yml"
+    path = root / name
+    path.parent.mkdir(parents=True)
+    path.write_bytes(LOC)
+    _git(root, "add", name)
+    path.write_bytes(BOM + LOC)
+    result = _git(root, "commit", "-q", "-m", "loc", hooks_dir=hooks, check=False)
+    assert result.returncode != 0, result.stdout + result.stderr
+    assert name in result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("raw, name", [
+    ('[tool.repokit-common]\nlanguages = ["python"]\n', "mod/localization/english/demo_l_english.yml"),
+    (PARADOX, "mod/common/demo.yml"),
+])
+def test_the_bom_check_is_only_for_a_paradox_mods_localization(repo, raw, name):
+    """CONSEQUENCE: 6 (behaviour) -- a project that is not a paradox mod, and a
+    .yml outside a localization folder, commit without a BOM."""
+    root, hooks = repo
+    _configure(root, raw=raw)
+    result = _commit(root, hooks, name, LOC)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert _in_head(root, name)
+
+
+def test_a_language_without_a_profile_commits(repo):
+    """CONSEQUENCE: 8 (safety) -- a project declaring a language with no
+    profile file (rust) commits as before: pre-commit runs under sh, where
+    sourcing a missing file would end the hook and refuse every commit."""
+    root, hooks = repo
+    _configure(root, raw='[tool.repokit-common]\nlanguages = ["rust", "python"]\n')
+    result = _commit(root, hooks, "src/main.rs", "fn main() {}\n")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert "No such file" not in result.stdout + result.stderr
+    assert _in_head(root, "src/main.rs")
 
 
 def test_ordinary_file_commits_in_a_worktree(worktree):

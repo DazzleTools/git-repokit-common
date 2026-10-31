@@ -1,0 +1,20 @@
+{
+ "test_command": [
+  "python",
+  "-m",
+  "pytest",
+  "-q",
+  "-p",
+  "no:cacheprovider",
+  "tests/test_sync_versions_extra_targets.py::test_match_first_updates_only_the_first_field"
+ ],
+ "mutations": [
+  {
+   "id": "M9",
+   "file": "sync-versions.py",
+   "original": "spans = spans[:1]",
+   "mutated": "spans = spans[-1:]",
+   "note": "match='first' updates the last occurrence."
+  }
+ ]
+}

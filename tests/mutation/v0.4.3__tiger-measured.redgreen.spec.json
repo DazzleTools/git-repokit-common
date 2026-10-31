@@ -1,0 +1,12 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_pre_push_hook.py", "-k", "paradox or tiger"],
+ "mutations": [
+  {"id": "T1", "file": "hooks/pre-push", "original": "_rk_target=\"$_rk_mod/descriptor.mod\" ;;", "mutated": "_rk_target=\"$_rk_mod\" ;;", "note": "ck3 given the folder (the call before the measurement)."},
+  {"id": "T2", "file": "hooks/pre-push", "original": "[ \"$_rk_mode\" = rich ] || _rk_tiger_args+=(--no-color)", "mutated": ":", "note": "Colour codes into captured output."},
+  {"id": "T3", "file": "hooks/pre-push", "original": "\"$_rk_tiger\" \"${_rk_tiger_args[@]}\" \"$_rk_target\" > \"$_rk_report\" 2>&1", "mutated": "\"$_rk_tiger\" \"${_rk_tiger_args[@]}\" \"$_rk_target\" 2>&1 | tee \"$_rk_report\"", "note": "The whole report streamed into the push."},
+  {"id": "T4", "file": "hooks/pre-push", "original": "    if [ $_rc -ne 0 ]; then\n        tail -n 15 \"$_rk_report\"", "mutated": "    if false; then\n        tail -n 15 \"$_rk_report\"", "note": "A Tiger that cannot run is not reported."},
+  {"id": "T5", "file": "hooks/pre-push", "original": "echo \"  $_rk_tiger is older than the game it found; some reports may be wrong\"", "mutated": ":", "note": "The version banner is dropped."},
+  {"id": "T6", "file": "hooks/pre-push", "original": "grep -qE '^fatal: 0, error: 0,'", "mutated": "grep -qE '^fatal: '", "note": "Findings shown as OK."},
+  {"id": "T7", "file": "hooks/pre-push", "original": "vic3) _rk_tiger=vic3-tiger; _rk_target=\"$_rk_mod\" ;;", "mutated": "vic3) _rk_tiger=vic3-tiger; _rk_target=\"$_rk_mod/descriptor.mod\" ;;", "note": "vic3 given the descriptor file instead of the folder."}
+ ]
+}

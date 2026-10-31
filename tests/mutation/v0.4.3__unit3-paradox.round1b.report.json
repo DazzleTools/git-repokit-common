@@ -1,0 +1,50 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_pre_commit_hook.py",
+      "-k",
+      "bom"
+    ],
+    "timestamp": "2026-10-30T12:54:03-04:00"
+  },
+  "results": [
+    {
+      "id": "M10",
+      "file": "hooks/pre-commit",
+      "note": "Narrowed to added files: a modified localization file that loses its BOM passes.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "repo'...('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14581/test_an_edit_that_drops_the_bo0/repo/.git/hooks'))\n\n    def test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked(repo):\n        \"\"\"CONSEQUENCE: 8 (safety) -- the common way a BOM is lost is an editor\n        re-saving an existing file, so a modified file is checked, not only a new one.\"\"\"\n        root, hooks = repo\n        _configure(root, raw=PARADOX)\n        name = \"mod/localization/english/demo_l_english.yml\"\n        assert _commit(root, hooks, name, BOM + LOC).returncode == 0\n        result = _commit(root, hooks, name, LOC + b' other_key:0 \"Other\"\\n')\n>       assert result.returncode != 0, result.stdout + result.stderr\nE       AssertionError: -- Pre-Commit Check\nE            Branch: main (public)\nE         \nE       assert 0 != 0\nE        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...zation/english/demo_l_english.yml'], returncode=0, stdout='', stderr='-- Pre-Commit Check\\n   Branch: main (public)\\n').returncode\n\ntests\\test_pre_commit_hook.py:446: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked\n1 failed, 8 passed, 39 deselected in 14.31s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 1
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked": [
+        "M10"
+      ]
+    },
+    "identical": [],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

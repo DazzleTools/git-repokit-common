@@ -179,11 +179,13 @@ def test_a_missing_file_is_named(tmp_path):
 
 
 def test_match_first_updates_only_the_first_field(tmp_path):
-    """CONSEQUENCE: 4 (behaviour) -- match="first" leaves later fields alone."""
+    """CONSEQUENCE: 4 (behaviour) -- match="first" updates the first field (the
+    marketplace's own version) and leaves the later one (the plugin entry's)
+    alone. Compared as whole text: a count of each version cannot tell the
+    first field from the last (the 0.4.3 sweep's M9 survived it)."""
     f = _target(tmp_path, MARKET, "marketplace.json")
     _sync(tmp_path, {"path": "marketplace.json", "match": "first"})
-    text = f.read_text(encoding="utf-8")
-    assert text.count('"0.3.2"') == 1 and text.count('"0.3.1"') == 1
+    assert f.read_text(encoding="utf-8") == MARKET.replace('"0.3.1"', '"0.3.2"', 1)
 
 
 def test_an_in_sync_target_is_not_rewritten(tmp_path):
@@ -193,6 +195,102 @@ def test_an_in_sync_target_is_not_rewritten(tmp_path):
     mtime = f.stat().st_mtime_ns
     assert _sync(tmp_path, {"path": "plugin.json"}) == "ok"
     assert f.stat().st_mtime_ns == mtime
+
+
+# --- pattern targets -----------------------------------------------------
+
+# Shaped like the real CK3 descriptors M3 rewrote (2026-10-30, 62 of 62
+# byte-exact): version="x" with no spaces, and a supported_version line that
+# must never be taken for it.
+DESCRIPTOR = ('version="0.3.1"\ntags={\n\t"Utilities"\n}\nname="Demo"\n'
+              'supported_version="1.20.*"\nremote_file_id="2216746850"\n')
+DESC_PATTERN = '^version="([^"]*)"\\r?$'
+DESC_SPEC = {"path": "descriptor.mod", "pattern": DESC_PATTERN, "format": "base"}
+
+
+@pytest.mark.parametrize("bom", [b"", b"\xef\xbb\xbf"], ids=["no-bom", "bom"])
+@pytest.mark.parametrize("eol", ["\n", "\r\n"], ids=["lf", "crlf"])
+def test_pattern_rewrites_only_the_version_group_byte_for_byte(tmp_path, bom, eol):
+    """CONSEQUENCE: 9 (safety) -- the anchor: a descriptor.mod's version line
+    gets the new version and not one other byte changes -- BOM, line endings
+    and supported_version included."""
+    text = DESCRIPTOR.replace("\n", eol)
+    f = _target(tmp_path, None, "descriptor.mod", raw=bom + text.encode("utf-8"))
+    assert _sync(tmp_path, DESC_SPEC) == "updated"
+    expected = text.replace('version="0.3.1"', 'version="0.3.2"', 1)
+    assert f.read_bytes() == bom + expected.encode("utf-8")
+    assert 'supported_version="1.20.*"' in f.read_text(encoding="utf-8-sig")
+
+
+def test_pattern_with_no_matching_line_is_absent_not_an_error(tmp_path):
+    """CONSEQUENCE: 7 (behaviour) -- a descriptor with no version line (3 of
+    65 real ones) is reported absent and left byte-identical, in check mode too."""
+    text = DESCRIPTOR.replace('version="0.3.1"\n', "")
+    f = _target(tmp_path, text, "descriptor.mod")
+    assert _sync(tmp_path, DESC_SPEC) == "absent"
+    assert _sync(tmp_path, DESC_SPEC, check=True) == "absent"
+    assert f.read_text(encoding="utf-8") == text
+
+
+def test_pattern_matching_two_lines_is_refused_unless_match_all(tmp_path):
+    """CONSEQUENCE: 8 (safety) -- a pattern that matches more than one line is
+    refused untouched; match = "all" updates every one, "first" the first."""
+    text = DESCRIPTOR + 'version="0.3.1"\n'
+    f = _target(tmp_path, text, "descriptor.mod")
+    with pytest.raises(SV.TargetError, match='2 lines match the pattern; set match = "all"'):
+        _sync(tmp_path, DESC_SPEC)
+    assert f.read_text(encoding="utf-8") == text
+    assert _sync(tmp_path, dict(DESC_SPEC, match="first")) == "updated"
+    after_first = f.read_text(encoding="utf-8")
+    assert after_first.startswith('version="0.3.2"\n')            # the first line ...
+    assert after_first.endswith('version="0.3.1"\n')              # ... and not the last
+    assert _sync(tmp_path, dict(DESC_SPEC, match="all")) == "updated"
+    assert f.read_text(encoding="utf-8").count('version="0.3.2"') == 2
+
+
+def test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly(tmp_path):
+    """CONSEQUENCE: 8 (safety) -- when the new version is longer than the old
+    (0.3.1 -> 0.3.2-alpha), every matched line still gets exactly the new text:
+    an edit at one line must not shift where the next one lands."""
+    text = DESCRIPTOR + 'version="0.3.1"\n'
+    f = _target(tmp_path, text, "descriptor.mod")
+    spec = {"path": "descriptor.mod", "pattern": DESC_PATTERN, "match": "all"}
+    assert _sync(tmp_path, spec, components=ALPHA) == "updated"
+    human = SV.format_human_version(ALPHA)
+    assert f.read_text(encoding="utf-8") == text.replace('version="0.3.1"', f'version="{human}"')
+
+
+def test_pattern_check_mode_and_format(tmp_path):
+    """CONSEQUENCE: 7 (behaviour) -- --check reports stale and writes nothing;
+    format = "human" (the default) carries the phase, as for JSON targets; an
+    in-sync file reports ok."""
+    f = _target(tmp_path, DESCRIPTOR, "descriptor.mod")
+    spec = {"path": "descriptor.mod", "pattern": DESC_PATTERN}
+    assert _sync(tmp_path, spec, components=ALPHA, check=True) == "stale"
+    assert f.read_text(encoding="utf-8") == DESCRIPTOR
+    assert _sync(tmp_path, spec, components=ALPHA) == "updated"
+    human = SV.format_human_version(ALPHA)
+    assert human != "0.3.2" and f'version="{human}"' in f.read_text(encoding="utf-8")
+    assert _sync(tmp_path, spec, components=ALPHA) == "ok"
+
+
+@pytest.mark.parametrize("spec, message", [
+    ({"path": "descriptor.mod", "pattern": '^version="[^"]*"$'}, "exactly one group"),
+    ({"path": "descriptor.mod", "pattern": '^(version)="([^"]*)"$'}, "exactly one group"),
+    ({"path": "descriptor.mod", "pattern": '^version="(['}, "not a valid regular expression"),
+    ({"path": "descriptor.mod", "pattern": ""}, "non-empty 'pattern'"),
+    ({"path": "descriptor.mod", "pattern": '^v="(.*)"$', "field": "version"}, "'field' is for json"),
+    ({"path": "descriptor.mod", "pattern": '^v="(.*)"$', "type": "json"}, "'pattern' is for pattern"),
+    ({"path": "descriptor.mod", "type": "pattern"}, "non-empty 'pattern'"),
+])
+def test_bad_pattern_entries_are_named_not_guessed(tmp_path, spec, message):
+    """CONSEQUENCE: 6 (behaviour) -- a pattern with no group or two, an invalid
+    one, a missing one, or one mixed with a JSON field is an error naming the
+    problem, and the file is untouched."""
+    f = _target(tmp_path, DESCRIPTOR, "descriptor.mod")
+    with pytest.raises(SV.TargetError, match=message):
+        _sync(tmp_path, spec)
+    assert f.read_text(encoding="utf-8") == DESCRIPTOR
 
 
 # --- end to end ----------------------------------------------------------
@@ -267,6 +365,29 @@ def test_without_extra_targets_nothing_about_them_is_said(tmp_path):
     assert r.returncode == 0
     assert "plugin.json" not in r.stdout + r.stderr
     assert (root / "plugin.json").read_bytes() == before
+
+
+def test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line(tmp_path):
+    """CONSEQUENCE: 8 (behaviour) -- end to end: --bump moves a pattern
+    target with the version source; a second descriptor with no version line
+    is noted as skipped and the run still exits 0; --check then passes."""
+    targets = ("\n[[tool.repokit-common.extra-targets]]\npath = \"mod/descriptor.mod\"\n"
+               "pattern = '^version=\"([^\"]*)\"\\r?$'\nformat = \"base\"\n"
+               "\n[[tool.repokit-common.extra-targets]]\npath = \"other/descriptor.mod\"\n"
+               "pattern = '^version=\"([^\"]*)\"\\r?$'\n")
+    root = _project(tmp_path, targets)
+    (root / "mod").mkdir()
+    (root / "other").mkdir()
+    (root / "mod" / "descriptor.mod").write_bytes(b"\xef\xbb\xbf" + DESCRIPTOR.encode("utf-8"))
+    no_line = DESCRIPTOR.replace('version="0.3.1"\n', "")
+    (root / "other" / "descriptor.mod").write_text(no_line, encoding="utf-8")
+    r = _run(root, "--bump", "patch", "--no-git-ver")
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (root / "mod" / "descriptor.mod").read_bytes() == (
+        b"\xef\xbb\xbf" + DESCRIPTOR.replace('version="0.3.1"', 'version="0.3.2"').encode("utf-8"))
+    assert "other/descriptor.mod: no line matches the pattern (skipped)" in r.stdout
+    assert (root / "other" / "descriptor.mod").read_text(encoding="utf-8") == no_line
+    assert _run(root, "--check", "--no-git-ver").returncode == 0
 
 
 def test_bump_carries_the_new_version_into_the_targets(tmp_path):

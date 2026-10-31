@@ -68,6 +68,7 @@ def repo(tmp_path):
     hooks.mkdir(exist_ok=True)
     shutil.copy(HOOK, hooks / "pre-push")
     shutil.copy(HOOK.parent / "lib.sh", hooks / "lib.sh")  # the hook sources it from beside itself
+    shutil.copytree(HOOK.parent / "profiles", hooks / "profiles")  # and each language's profile
     (hooks / "pre-push").chmod(0o755)
     vendored = root / "scripts" / "repokit-common"
     vendored.mkdir(parents=True)
@@ -182,15 +183,316 @@ def test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning(r
 
 def test_a_c_cpp_project_is_detected_and_runs_no_product_checks(repo):
     """CONSEQUENCE: 7 (behaviour) -- a CMake project with no setting is detected
-    as c-cpp: the Python checks (pdb, print count) do not run on its tooling
-    scripts, the syntax check and tests still do."""
+    as c-cpp: the Python checks (pdb, print count, and since 0.4.3 the syntax
+    check, Q261023-01) do not run on its tooling scripts; the tests still do."""
     noisy = "import pdb\n" + "".join(f"print({i})\n" for i in range(25))
     r, out, landed = _push(repo, {"CMakeLists.txt": "project(demo)\n", "tools/gen.py": noisy,
                                   "tests/test_a.py": PASSING})
     assert r.returncode == 0 and landed, out
-    assert "Product languages: c-cpp" in out and "c-cpp: no product checks" in out
+    assert "Product languages: c-cpp" in out
+    assert "c-cpp: no product checks (the build and tests are the gate)" in out   # its profile, not the fallback
     assert "Debugger statements found" not in out and "print() statements" not in out
+    assert "Checking Python syntax" not in out
+    assert "All tests passed" in out
+
+
+BROKEN_PY = "def broken(:\n    pass\n"
+
+
+def test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default(repo):
+    """CONSEQUENCE: 9 (safety) -- a project that declares nothing and shows no
+    markers is python by default (9 of 50 consumers, M1) and keeps the syntax
+    check: a broken tooling script still stops the push. Anchor: red if the
+    step keyed on the declared or detected languages only."""
+    r, out, landed = _push(repo, {"tools/gen.py": BROKEN_PY, "tests/test_a.py": PASSING})
+    assert r.returncode != 0 and not landed
+    assert "Product languages: python" in out
+    assert "Python syntax errors found" in out
+
+
+def test_a_declared_javascript_project_gets_no_python_syntax_step(repo):
+    """CONSEQUENCE: 8 (behaviour) -- Q261023-01: languages = ["javascript"]
+    runs no Python syntax check, so a Python file it carries is not compiled
+    and the push goes through."""
+    r, out, landed = _push(repo, {
+        ".repokit-common.toml": '[tool.repokit-common]\nlanguages = ["javascript"]\n',
+        "tools/gen.py": BROKEN_PY, "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "Product languages: javascript" in out
+    assert "Checking Python syntax" not in out and "Python syntax" not in out
+
+
+def test_a_python_check_command_replaces_the_syntax_check_and_its_failure_blocks_main(repo):
+    """CONSEQUENCE: 8 (safety) -- check-command.python replaces the syntax
+    check (a broken file it does not look at passes) and its non-zero exit
+    blocks a gated branch, with the command's own output shown."""
+    cfg = ('[tool.repokit-common]\n\n[tool.repokit-common.check-command]\n'
+           'python = "python lint.py"\n')
+    r, out, landed = _push(repo, {
+        ".repokit-common.toml": cfg, "tools/gen.py": BROKEN_PY, "tests/test_a.py": PASSING,
+        "lint.py": "import sys\nprint('lint says no')\nsys.exit(1)\n"})
+    assert r.returncode != 0 and not landed
+    assert "check-command: python lint.py" in out and "lint says no" in out
+    assert "python check-command failed (exit 1)" in out
+    assert "BLOCKED: Cannot push to main with a failing python check" in out
+    assert "Checking Python syntax" not in out
+
+
+def test_a_failing_check_command_warns_on_an_ungated_branch(repo):
+    """CONSEQUENCE: 6 (behaviour) -- off the gated branches a failing
+    check-command is reported and the push goes through, as failing tests are."""
+    cfg = '[tool.repokit-common]\ncheck-command.python = "python lint.py"\n'
+    r, out, landed = _push(repo, {
+        ".repokit-common.toml": cfg, "tests/test_a.py": PASSING,
+        "lint.py": "import sys\nsys.exit(3)\n"}, branch="feature")
+    assert r.returncode == 0 and landed, out
+    assert "python check-command failed (exit 3)" in out
+    assert "feature is not a gated branch" in out
+
+
+def test_an_empty_check_command_turns_the_python_step_off(repo):
+    """CONSEQUENCE: 6 (behaviour) -- check-command.python = "" turns the
+    syntax check off, and says so."""
+    cfg = '[tool.repokit-common]\ncheck-command.python = ""\n'
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "tools/gen.py": BROKEN_PY,
+                                  "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "python: check step off (check-command is empty)" in out
+    assert "Checking Python syntax" not in out
+
+
+def test_a_passing_python_check_command_is_the_whole_step(repo):
+    """CONSEQUENCE: 7 (behaviour) -- once check-command.python passes, the
+    syntax check does not run after it: the command replaces the default, it
+    is not added in front of it."""
+    cfg = '[tool.repokit-common]\ncheck-command.python = "echo lint-ok"\n'
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "tools/gen.py": BROKEN_PY,
+                                  "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "python check-command passed" in out
+    assert "Checking Python syntax" not in out
+
+
+def test_a_missing_profiles_folder_stops_the_push(repo):
+    """CONSEQUENCE: 9 (safety) -- without hooks/profiles/ every language's
+    checks would vanish silently (a broken Python file would push); the hook
+    refuses instead and says how to repair the install."""
+    shutil.rmtree(repo[1] / "profiles")
+    r, out, landed = _push(repo, {"tools/gen.py": BROKEN_PY, "tests/test_a.py": PASSING})
+    assert r.returncode != 0 and not landed
+    assert "profiles/ is not beside it" in out
+
+
+def test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder(repo):
+    """CONSEQUENCE: 7 (safety) -- pre-push cds to the repository root before
+    loading profiles, so profiles/ must be found from the hooks folder
+    resolved before the cd, not from a relative $0 (here ../.git/hooks/pre-push
+    run from sub/): the checks run, and a broken Python file is still caught."""
+    root, hooks, _ = repo
+    _w(root / "tools" / "gen.py", BROKEN_PY)
+    (root / "sub").mkdir()
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "c", hooks_dir=hooks)
+    sha = _git(root, "rev-parse", "HEAD").stdout.strip()
+    bash = shutil.which("bash")
+    if bash is None:
+        pytest.skip("bash not found")
+    r = subprocess.run([bash, "../.git/hooks/pre-push", "origin", "unused"], cwd=root / "sub",
+                       input=f"refs/heads/main {sha} refs/heads/main {'0' * 40}\n",
+                       capture_output=True, text=True, encoding="utf-8", errors="replace")
+    out = r.stdout + r.stderr
+    assert "profiles/ is not beside it" not in out, out
+    assert r.returncode != 0 and "Python syntax errors found" in out, out
+
+
+def test_a_two_language_project_runs_both_profiles(repo):
+    """CONSEQUENCE: 8 (behaviour) -- languages = ["typescript", "python"] (the
+    claude-bookmarks shape: a TypeScript plugin with Python tooling and tests)
+    loads both profiles: typescript's debugger check stops a debugger
+    statement, and once it is gone python's syntax check still runs."""
+    cfg = '[tool.repokit-common]\nlanguages = ["typescript", "python"]\n'
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "tests/test_a.py": PASSING,
+                                  "plugin/src/index.ts": "export const x = 1;\n  debugger;\n"})
+    assert r.returncode != 0 and not landed
     assert "Python syntax check passed" in out
+    assert "Debugger statements found (typescript)" in out
+    r, out, landed = _push(repo, {"plugin/src/index.ts": "export const x = 1;\n"})
+    assert r.returncode == 0 and landed, out
+    assert "Python syntax check passed" in out
+    assert "typescript: no product checks" not in out and "python: no product checks" not in out
+
+
+def test_a_new_profile_file_is_picked_up_without_a_hook_change(repo):
+    """CONSEQUENCE: 7 (behaviour) -- a language gains checks by adding
+    hooks/profiles/<language>.sh (repokit-common's own, or later a pack's):
+    its product step runs, and a language with no profile says so."""
+    _w(repo[1] / "profiles" / "rust.sh", 'rk_profile_rust_product() {\n    echo "  RUST-PRODUCT ran"\n}\n')
+    cfg = '[tool.repokit-common]\nlanguages = ["rust", "zig"]\n'
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "RUST-PRODUCT ran" in out
+    assert "zig: no product checks for this language yet" in out
+    assert "No such file" not in out           # zig has no profile file, and none is sourced
+
+
+def test_a_language_name_cannot_reach_outside_the_profiles_folder(repo):
+    """CONSEQUENCE: 8 (safety) -- languages are names, not paths: "../evil"
+    does not source hooks/evil.sh."""
+    _w(repo[1] / "evil.sh", 'echo "EVIL-SOURCED"\n')
+    cfg = '[tool.repokit-common]\nlanguages = ["../evil"]\n'
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert "EVIL-SOURCED" not in out
+
+
+@pytest.mark.parametrize("profile", sorted((HOOK.parent / "profiles").glob("*.sh")), ids=lambda p: p.name)
+def test_profiles_are_posix_sh(profile):
+    """CONSEQUENCE: 7 (safety) -- pre-commit runs under sh and sources every
+    profile, so a bash-only construct would break commits on a system whose sh
+    is not bash (dash on Debian and Ubuntu)."""
+    import re
+    code = "\n".join(line.split("#", 1)[0] for line in profile.read_text(encoding="utf-8").splitlines())
+    # "[[ " is bash's test; "[[:space:]]" (a regex class inside a grep pattern) is not.
+    for name, pattern in (("[[ test", r"\[\[\s"), ("array", r"\w\+?=\("), ("PIPESTATUS", r"PIPESTATUS"),
+                          ("here-string", r"<<<"), ("function keyword", r"^\s*function\s"),
+                          ("indirect expansion", r"\$\{!")):
+        assert not re.search(pattern, code, re.MULTILINE), f"{profile.name} uses a bash {name}"
+
+
+PARADOX_CFG = '[tool.repokit-common]\nlanguages = ["paradox"]\nparadox-game = "ck3"\n'
+DESCRIPTOR = 'version="1.0.0"\nname="Demo"\nsupported_version="1.20.*"\n'
+
+
+def _stub_tiger(tmp_path, name="ck3-tiger", fatal=0, error=0, fail=False, old=False):
+    """A fake Tiger on its own PATH folder that behaves as the real one was
+    measured to (tests/one-offs/thinking/measure-tiger, ck3-tiger 1.19.0):
+    ck3/imperator take the descriptor.mod FILE and vic3 the mod FOLDER, and
+    anything else cannot run (exit 1); a run that can start ends with the
+    summary line and exits 0 whatever it found. ``old`` adds Tiger's
+    "PLEASE UPDATE!" banner; ``fail`` makes it unable to run."""
+    bindir = tmp_path / "bin"
+    bindir.mkdir(exist_ok=True)
+    stub = bindir / name
+    wants = '[ -d "$t" ]' if name.startswith("vic3") else 'case "$t" in *.mod) [ -f "$t" ] ;; *) false ;; esac'
+    stub.write_text(
+        "#!/bin/sh\n"
+        'echo "TIGER-RAN $*"\n'
+        't="$1"; [ "$1" = --no-color ] && t="$2"\n'
+        f'{wants} || {{ echo "cannot read $t"; exit 1; }}\n'
+        + ("exit 1\n" if fail else "")
+        + ('echo "PLEASE UPDATE!"\n' if old else "")
+        + f'echo "fatal: {fatal}, error: {error}, warning: 3, untidy: 0, tips: 0"\nexit 0\n',
+        encoding="utf-8", newline="\n")
+    stub.chmod(0o755)
+    return {**os.environ, "PATH": str(bindir) + os.pathsep + os.environ.get("PATH", "")}
+
+
+def _tiger_report(repo, name="ck3-tiger"):
+    return (repo[0] / ".git" / f"repokit-{name}.txt").read_text(encoding="utf-8")
+
+
+paradox_tiger_absent = pytest.mark.skipif(
+    shutil.which("ck3-tiger") is not None, reason="a real ck3-tiger is on PATH")
+
+
+def test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks(repo, tmp_path):
+    """CONSEQUENCE: 8 (behaviour) -- languages = ["paradox"] with paradox-game
+    = "ck3": ck3-tiger runs on mod/descriptor.mod (the file, as ck3-tiger
+    takes it), without colour in captured output; the push shows its summary
+    and where the full report is; no Python syntax check runs, so a broken
+    tooling script does not stop the push."""
+    env = _stub_tiger(tmp_path)
+    r, out, landed = _push(repo, {".repokit-common.toml": PARADOX_CFG, "mod/descriptor.mod": DESCRIPTOR,
+                                  "tools/link_mod.py": BROKEN_PY}, env=env)
+    assert r.returncode == 0 and landed, out
+    assert "Product languages: paradox" in out
+    assert "Linting the mod with ck3-tiger (mod/descriptor.mod)" in out
+    assert "[OK] ck3-tiger: fatal: 0, error: 0, warning: 3" in out
+    assert "full report:" in out and "repokit-ck3-tiger.txt" in out
+    assert "TIGER-RAN --no-color mod/descriptor.mod" in _tiger_report(repo)
+    assert "TIGER-RAN" not in out                        # the report is not streamed into the push
+    assert "Checking Python syntax" not in out
+    assert "paradox: no debugger or print checks" in out
+
+
+def test_tiger_findings_are_summarized_and_never_block(repo, tmp_path):
+    """CONSEQUENCE: 7 (behaviour) -- Tiger is advisory: findings on main
+    (Tiger still exits 0) are shown as its summary with a warning, an old
+    Tiger's version banner becomes one note, and the push goes through."""
+    env = _stub_tiger(tmp_path, fatal=2, error=5, old=True)
+    r, out, landed = _push(repo, {".repokit-common.toml": PARADOX_CFG, "mod/descriptor.mod": DESCRIPTOR}, env=env)
+    assert r.returncode == 0 and landed, out
+    assert "[!] ck3-tiger: fatal: 2, error: 5, warning: 3, untidy: 0, tips: 0 (not blocking)" in out
+    assert "ck3-tiger is older than the game it found" in out
+
+
+def test_a_tiger_that_cannot_run_is_reported_and_never_blocks(repo, tmp_path):
+    """CONSEQUENCE: 7 (behaviour) -- Tiger exits 1 only when it cannot run (a
+    bad path, no game): the push says the mod was not linted, shows Tiger's
+    own words, and goes through."""
+    env = _stub_tiger(tmp_path, fail=True)
+    r, out, landed = _push(repo, {".repokit-common.toml": PARADOX_CFG, "mod/descriptor.mod": DESCRIPTOR}, env=env)
+    assert r.returncode == 0 and landed, out
+    assert "ck3-tiger could not run (exit 1) -- the mod was not linted; not blocking" in out
+    assert "TIGER-RAN" in out                            # its own output, shown because it failed
+
+
+@paradox_tiger_absent
+def test_a_paradox_mod_without_tiger_installed_skips_cleanly(repo):
+    """CONSEQUENCE: 7 (behaviour) -- with no ck3-tiger on PATH the push goes
+    through and says how to get a linter."""
+    r, out, landed = _push(repo, {".repokit-common.toml": PARADOX_CFG, "mod/descriptor.mod": DESCRIPTOR})
+    assert r.returncode == 0 and landed, out
+    assert "paradox: ck3-tiger is not on PATH -- linter skipped" in out
+
+
+@pytest.mark.parametrize("cfg_extra, files, expected", [
+    ('paradox-game = "vic3"\n', {"descriptor.mod": DESCRIPTOR}, "Linting the mod with vic3-tiger (.)"),
+    ('paradox-game = "stellaris"\n', {"mod/descriptor.mod": DESCRIPTOR}, "paradox: no default linter for stellaris"),
+    ("", {"mod/descriptor.mod": DESCRIPTOR}, 'paradox: set paradox-game (e.g. "ck3") to choose a linter'),
+    ('paradox-game = "ck3"\n', {"mod/readme.txt": "x\n"}, "paradox: no descriptor.mod in mod/ or at the root"),
+])
+def test_the_paradox_game_and_the_mod_folder_choose_the_linter(repo, tmp_path, cfg_extra, files, expected):
+    """CONSEQUENCE: 6 (behaviour) -- paradox-game picks the Tiger build (vic3
+    lints a mod whose descriptor.mod sits at the root); a game with no Tiger,
+    no game, or no descriptor.mod each say why nothing ran, and the push goes through."""
+    env = _stub_tiger(tmp_path, name="vic3-tiger")
+    cfg = '[tool.repokit-common]\nlanguages = ["paradox"]\n' + cfg_extra
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, **files}, env=env)
+    assert r.returncode == 0 and landed, out
+    assert expected in out
+    if "Linting" in expected:
+        # vic3-tiger takes the mod folder (here the root), not the descriptor file
+        assert "vic3-tiger: fatal: 0, error: 0" in out
+        assert "TIGER-RAN --no-color ." in _tiger_report(repo, "vic3-tiger")
+    else:
+        # a skip says why once, and nothing runs after it
+        assert "is not on PATH" not in out and "Linting the mod" not in out and "could not run" not in out
+
+
+def test_a_paradox_check_command_replaces_tiger(repo, tmp_path):
+    """CONSEQUENCE: 6 (behaviour) -- check-command.paradox replaces the Tiger
+    default, and gates like any check-command."""
+    env = _stub_tiger(tmp_path)
+    cfg = PARADOX_CFG + 'check-command.paradox = "echo my-own-lint && exit 1"\n'
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "mod/descriptor.mod": DESCRIPTOR}, env=env)
+    assert r.returncode != 0 and not landed
+    assert "my-own-lint" in out and "Linting the mod" not in out
+    assert not (repo[0] / ".git" / "repokit-ck3-tiger.txt").exists()
+    assert "BLOCKED: Cannot push to main with a failing paradox check" in out
+
+
+@pytest.mark.parametrize("lang", ["javascript", "c-cpp"])
+def test_a_check_command_gives_a_language_without_a_default_a_step(repo, lang):
+    """CONSEQUENCE: 6 (behaviour) -- a language with no default check runs the
+    one the project configures, including a name with a hyphen (c-cpp's
+    variable is REPOKIT_CHECK_COMMAND_C_CPP)."""
+    cfg = (f'[tool.repokit-common]\nlanguages = ["{lang}"]\n'
+           f'check-command.{lang} = "echo lint-would-run"\n')
+    r, out, landed = _push(repo, {".repokit-common.toml": cfg, "tests/test_a.py": PASSING})
+    assert r.returncode == 0 and landed, out
+    assert f"Checking {lang}..." in out and "lint-would-run" in out
+    assert f"{lang} check-command passed" in out
 
 
 def test_a_push_git_rejected_says_nothing_to_push(repo):

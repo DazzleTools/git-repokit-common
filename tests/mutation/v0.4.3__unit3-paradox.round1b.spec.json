@@ -1,0 +1,22 @@
+{
+ "test_command": [
+  "python",
+  "-m",
+  "pytest",
+  "-q",
+  "-p",
+  "no:cacheprovider",
+  "tests/test_pre_commit_hook.py",
+  "-k",
+  "bom"
+ ],
+ "mutations": [
+  {
+   "id": "M10",
+   "file": "hooks/pre-commit",
+   "original": "    _rk_nobom=$(git -c core.quotePath=false diff --cached --name-only --diff-filter=ACMR |",
+   "mutated": "    _rk_nobom=$(git -c core.quotePath=false diff --cached --name-only --diff-filter=A |",
+   "note": "Narrowed to added files: a modified localization file that loses its BOM passes."
+  }
+ ]
+}

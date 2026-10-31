@@ -1,0 +1,101 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_pre_push_hook.py",
+      "-k",
+      "profile or outside_the_profiles"
+    ],
+    "timestamp": "2026-10-30T18:15:58-04:00"
+  },
+  "results": [
+    {
+      "id": "P1",
+      "file": "hooks/lib.sh",
+      "note": "A missing profiles folder is carried on through.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "==============\n________________ test_a_missing_profiles_folder_stops_the_push ________________\n\nrepo = (WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14657/test_a_missing_profiles_folder0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14657/test_a_missing_profiles_folder0/remote.git'))\n\n    def test_a_missing_profiles_folder_stops_the_push(repo):\n        \"\"\"CONSEQUENCE: 9 (safety) -- without hooks/profiles/ every language's\n        checks would vanish silently (a broken Python file would push); the hook\n        refuses instead and says how to repair the install.\"\"\"\n        shutil.rmtree(repo[1] / \"profiles\")\n        r, out, landed = _push(repo, {\"tools/gen.py\": BROKEN_PY, \"tests/test_a.py\": PASSING})\n>       assert r.returncode != 0 and not landed\nE       AssertionError: assert (0 != 0)\nE        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...guage yet\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n', stderr='').returncode\n\ntests\\test_pre_push_hook.py:281: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_missing_profiles_folder_stops_the_push\n1 failed, 9 passed, 53 deselected in 14.21s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_missing_profiles_folder_stops_the_push"
+      ]
+    },
+    {
+      "id": "P2",
+      "file": "hooks/lib.sh",
+      "note": "Profiles are never sourced.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "/pytest-14658/test_a_new_profile_file_is_pic0/remote.git'))\n\n    def test_a_new_profile_file_is_picked_up_without_a_hook_change(repo):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- a language gains checks by adding\n        hooks/profiles/<language>.sh (repokit-common's own, or later a pack's):\n        its product step runs, and a language with no profile says so.\"\"\"\n        _w(repo[1] / \"profiles\" / \"rust.sh\", 'rk_profile_rust_product() {\\n    echo \"  RUST-PRODUCT ran\"\\n}\\n')\n        cfg = '[tool.repokit-common]\\nlanguages = [\"rust\", \"zig\"]\\n'\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n>       assert \"RUST-PRODUCT ran\" in out\nE       AssertionError: assert 'RUST-PRODUCT ran' in '-- Pre-push validation for branch: main\\n  Product languages: rust zig\\n\\n\\nRunning tests...\\n  scope: tests/ (one-of...for this language yet\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:293: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting\nFAILED tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change\n2 failed, 8 passed, 53 deselected in 10.27s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change",
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting"
+      ]
+    },
+    {
+      "id": "P3",
+      "file": "hooks/lib.sh",
+      "note": "Language names are not filtered: a path reaches outside.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ndowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14659/test_a_language_name_cannot_re0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14659/test_a_language_name_cannot_re0/remote.git'))\n\n    def test_a_language_name_cannot_reach_outside_the_profiles_folder(repo):\n        \"\"\"CONSEQUENCE: 8 (safety) -- languages are names, not paths: \"../evil\"\n        does not source hooks/evil.sh.\"\"\"\n        _w(repo[1] / \"evil.sh\", 'echo \"EVIL-SOURCED\"\\n')\n        cfg = '[tool.repokit-common]\\nlanguages = [\"../evil\"]\\n'\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n>       assert \"EVIL-SOURCED\" not in out\nE       AssertionError: assert 'EVIL-SOURCED' not in 'EVIL-SOURCE...sh to main\\n'\nE         \nE         'EVIL-SOURCED' is contained here:\nE           EVIL-SOURCED\nE           -- Pre-push validation for branch: main\nE             Product languages: ../evil\nE           \nE           ...\nE         \nE         ...Full output truncated (16 lines hidden), use '-vv' to show\n\ntests\\test_pre_push_hook.py:304: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_language_name_cannot_reach_outside_the_profiles_folder\n1 failed, 9 passed, 53 deselected in 12.31s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_language_name_cannot_reach_outside_the_profiles_folder"
+      ]
+    },
+    {
+      "id": "P4",
+      "file": "hooks/profiles/paradox.sh",
+      "note": "A bash array back in a POSIX profile.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": " is not.\n        for name, pattern in ((\"[[ test\", r\"\\[\\[\\s\"), (\"array\", r\"\\w\\+?=\\(\"), (\"PIPESTATUS\", r\"PIPESTATUS\"),\n                              (\"here-string\", r\"<<<\"), (\"function keyword\", r\"^\\s*function\\s\"),\n                              (\"indirect expansion\", r\"\\$\\{!\")):\n>           assert not re.search(pattern, code, re.MULTILINE), f\"{profile.name} uses a bash {name}\"\nE           AssertionError: paradox.sh uses a bash array\nE           assert not <re.Match object; span=(1205, 1208), match='r=('>\nE            +  where <re.Match object; span=(1205, 1208), match='r=('> = <function search at 0x000002982EB66520>('\\\\w\\\\+?=\\\\(', '\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\n\\nrk_profile_paradox_check() {\\n    _rk_mod=\"\"\\n    if [ -f mod/descriptor.mod ]; then ...out an error. Save it as \\\\\"UTF-8 with BOM\\\\\",\"\\n        echo \"stage it again, and commit.\"\\n        exit 1\\n    fi\\n}', re.MULTILINE)\nE            +    where <function search at 0x000002982EB66520> = <module 're' from 'C:\\\\Python312\\\\Lib\\\\re\\\\__init__.py'>.search\nE            +    and   re.MULTILINE = <module 're' from 'C:\\\\Python312\\\\Lib\\\\re\\\\__init__.py'>.MULTILINE\n\ntests\\test_pre_push_hook.py:318: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_profiles_are_posix_sh[paradox.sh] - ...\n1 failed, 9 passed, 53 deselected in 11.03s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_profiles_are_posix_sh[paradox.sh]"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 4
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_push_hook.py::test_a_language_name_cannot_reach_outside_the_profiles_folder": [
+        "P3"
+      ],
+      "tests/test_pre_push_hook.py::test_a_missing_profiles_folder_stops_the_push": [
+        "P1"
+      ],
+      "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change": [
+        "P2"
+      ],
+      "tests/test_pre_push_hook.py::test_profiles_are_posix_sh[paradox.sh]": [
+        "P4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting": [
+        "P2"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change",
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting"
+      ]
+    ],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

@@ -1,0 +1,17 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_sync_versions_extra_targets.py"],
+ "mutations": [
+  {"id": "M1", "file": "sync-versions.py", "original": "\"type\": spec.get(\"type\", \"pattern\" if \"pattern\" in spec else \"json\"),", "mutated": "\"type\": spec.get(\"type\", \"json\"),", "note": "The implied type dropped: a pattern-only spec defaults to json and is refused."},
+  {"id": "M2", "file": "sync-versions.py", "original": "if not isinstance(pattern, str) or not pattern:", "mutated": "if not isinstance(pattern, str):", "note": "An empty pattern is no longer refused by name."},
+  {"id": "M3", "file": "sync-versions.py", "original": "s[\"regex\"] = re.compile(pattern, re.MULTILINE)", "mutated": "s[\"regex\"] = re.compile(pattern)", "note": "No MULTILINE: ^ and $ anchor only to the whole file."},
+  {"id": "M4", "file": "sync-versions.py", "original": "if s[\"regex\"].groups != 1:", "mutated": "if s[\"regex\"].groups < 1:", "note": "Two or more groups accepted."},
+  {"id": "M5", "file": "sync-versions.py", "original": "elif \"pattern\" in spec:", "mutated": "elif False:", "note": "A json target carrying 'pattern' is accepted and the pattern ignored."},
+  {"id": "M6", "file": "sync-versions.py", "original": "return [(m.start(1), m.end(1), m.group(1)) for m in regex.finditer(text)]", "mutated": "return [(m.start(), m.end(), m.group(1)) for m in regex.finditer(text)]", "note": "The whole match replaced, not the group."},
+  {"id": "M7", "file": "sync-versions.py", "original": "return \"absent\"", "mutated": "return \"ok\"", "note": "No matching line reported as in sync."},
+  {"id": "M8", "file": "sync-versions.py", "original": "if s[\"match\"] == \"one\" and len(spans) > 1:", "mutated": "if s[\"match\"] == \"one\" and len(spans) > 2:", "note": "Two matches under match='one' no longer refused."},
+  {"id": "M9", "file": "sync-versions.py", "original": "spans = spans[:1]", "mutated": "spans = spans[-1:]", "note": "match='first' updates the last occurrence."},
+  {"id": "M10", "file": "sync-versions.py", "original": "if all(v == version for _, _, v in spans):", "mutated": "if any(v == version for _, _, v in spans):", "note": "match='all' reports ok when only one occurrence is current."},
+  {"id": "M11", "file": "sync-versions.py", "original": "for start, end, _ in reversed(spans):", "mutated": "for start, end, _ in spans:", "note": "Forward splicing: a length change shifts later offsets under match='all'."},
+  {"id": "M12", "file": "sync-versions.py", "original": "s[\"file\"].write_bytes(bom + text.encode(\"utf-8\"))", "mutated": "s[\"file\"].write_bytes(text.encode(\"utf-8\"))", "note": "The preserved BOM is dropped on write."}
+ ]
+}

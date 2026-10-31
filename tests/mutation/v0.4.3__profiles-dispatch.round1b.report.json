@@ -1,0 +1,64 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_pre_push_hook.py",
+      "-k",
+      "two_language or c_cpp_project"
+    ],
+    "timestamp": "2026-10-30T19:26:12-04:00"
+  },
+  "results": [
+    {
+      "id": "M3",
+      "file": "hooks/lib.sh",
+      "note": "Only the first existing profile is loaded.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "a/Local/Temp/pytest-of-Extreme/pytest-14682/test_a_two_language_project_ru0/remote.git'))\n\n    def test_a_two_language_project_runs_both_profiles(repo):\n        \"\"\"CONSEQUENCE: 8 (behaviour) -- languages = [\"typescript\", \"python\"] (the\n        claude-bookmarks shape: a TypeScript plugin with Python tooling and tests)\n        loads both profiles: typescript's debugger check stops a debugger\n        statement, and once it is gone python's syntax check still runs.\"\"\"\n        cfg = '[tool.repokit-common]\\nlanguages = [\"typescript\", \"python\"]\\n'\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, \"tests/test_a.py\": PASSING,\n                                      \"plugin/src/index.ts\": \"export const x = 1;\\n  debugger;\\n\"})\n        assert r.returncode != 0 and not landed\n>       assert \"Python syntax check passed\" in out\nE       assert 'Python syntax check passed' in \"-- Pre-push validation for branch: main\\n  Product languages: typescript python\\n\\n\\nRunning tests...\\n  scope: tests...\\Users\\\\Extreme\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-Extreme\\\\pytest-14682\\\\test_a_two_language_project_ru0\\\\remote.git'\\n\"\n\ntests\\test_pre_push_hook.py:317: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles\n1 failed, 1 passed, 63 deselected in 7.51s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles"
+      ]
+    },
+    {
+      "id": "M5",
+      "file": "hooks/lib.sh",
+      "note": "c-cpp's hyphen is kept: its functions are never found.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": " test_a_c_cpp_project_is_detected_and_runs_no_product_checks(repo):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- a CMake project with no setting is detected\n        as c-cpp: the Python checks (pdb, print count, and since 0.4.3 the syntax\n        check, Q261023-01) do not run on its tooling scripts; the tests still do.\"\"\"\n        noisy = \"import pdb\\n\" + \"\".join(f\"print({i})\\n\" for i in range(25))\n        r, out, landed = _push(repo, {\"CMakeLists.txt\": \"project(demo)\\n\", \"tools/gen.py\": noisy,\n                                      \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n        assert \"Product languages: c-cpp\" in out\n>       assert \"c-cpp: no product checks (the build and tests are the gate)\" in out   # its profile, not the fallback\nE       AssertionError: assert 'c-cpp: no product checks (the build and tests are the gate)' in '-- Pre-push validation for branch: main\\n  Product languages: c-cpp\\n\\n\\nRunning tests...\\n  scope: tests/ (one-offs/...for this language yet\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:193: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks\n1 failed, 1 passed, 63 deselected in 12.12s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 2
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks": [
+        "M5"
+      ],
+      "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles": [
+        "M3"
+      ]
+    },
+    "identical": [],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

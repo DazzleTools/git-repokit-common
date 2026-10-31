@@ -1,0 +1,263 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_repokit_config.py",
+      "tests/test_pre_push_hook.py",
+      "tests/test_pre_commit_hook.py",
+      "-k",
+      "paradox or tiger or bom or languages"
+    ],
+    "timestamp": "2026-10-30T12:58:59-04:00"
+  },
+  "results": [
+    {
+      "id": "R1",
+      "file": "hooks/pre-push",
+      "note": "vic3 is dropped from the game list.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "\"}, \"paradox: no descriptor.mod in mod/ or at the root\"),\n    ])\n    def test_the_paradox_game_and_the_mod_folder_choose_the_linter(repo, tmp_path, cfg_extra, files, expected):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- paradox-game picks the Tiger build (vic3\n        lints a mod whose descriptor.mod sits at the root); a game with no Tiger,\n        no game, or no descriptor.mod each say why nothing ran, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, name=\"vic3-tiger\")\n        cfg = '[tool.repokit-common]\\nlanguages = [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert expected in out\nE       AssertionError: assert 'Linting the mod with vic3-tiger (.)' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n  paradox: no default linter for vic3 -- set... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\n1 failed, 28 passed, 108 deselected in 25.17s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ]
+    },
+    {
+      "id": "R2",
+      "file": "hooks/pre-push",
+      "note": "The empty-game branch falls through.",
+      "verdict": "survived",
+      "restore_ok": true,
+      "output_tail": ""
+    },
+    {
+      "id": "R3",
+      "file": "hooks/pre-push",
+      "note": "The unknown-game branch falls through.",
+      "verdict": "survived",
+      "restore_ok": true,
+      "output_tail": ""
+    },
+    {
+      "id": "R4",
+      "file": "hooks/pre-push",
+      "note": "The no-descriptor guard is inverted.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "or at the root' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n  paradox: ck3-tiger is not on PATH -- linte... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]\n7 failed, 22 passed, 108 deselected in 26.23s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    },
+    {
+      "id": "R5",
+      "file": "hooks/pre-commit",
+      "note": "pre-commit no longer reads languages.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "     result = _git(root, \"commit\", \"-q\", \"-m\", \"loc\", hooks_dir=hooks, check=False)\n>       assert result.returncode != 0, result.stdout + result.stderr\nE       AssertionError: -- Pre-Commit Check\nE            Branch: main (public)\nE         \nE       assert 0 != 0\nE        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...ooks', 'commit', '-q', '-m', 'loc'], returncode=0, stdout='', stderr='-- Pre-Commit Check\\n   Branch: main (public)\\n').returncode\n\ntests\\test_pre_commit_hook.py:462: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]\nFAILED tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked\nFAILED tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file\n6 failed, 23 passed, 108 deselected in 24.97s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file"
+      ]
+    },
+    {
+      "id": "R6",
+      "file": "hooks/pre-commit",
+      "note": "The block test is inverted.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ere 1 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...M\\n\\n  - \\n\\nThe game skips such a file without an error. Save it as \"UTF-8 with BOM\",\\nstage it again, and commit.\\n').returncode\n\ntests\\test_pre_commit_hook.py:476: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits\nFAILED tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked\nFAILED tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file\nFAILED tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]\n8 failed, 21 passed, 108 deselected in 24.83s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 4,
+    "survived": 2
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits": [
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]": [
+        "R5",
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]": [
+        "R5",
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]": [
+        "R5",
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]": [
+        "R5",
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked": [
+        "R5",
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]": [
+        "R6"
+      ],
+      "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file": [
+        "R5",
+        "R6"
+      ],
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]": [
+        "R1",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block": [
+        "R4"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    ],
+    "contained": [
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_with_a_bom_commits",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_is_only_for_a_paradox_mods_localization[[tool.repokit-common]\\nlanguages = [\"paradox\"]\\nparadox-game = \"ck3\"\\n-mod/common/demo.yml]",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ]
+    ],
+    "killed_without_names": []
+  }
+}

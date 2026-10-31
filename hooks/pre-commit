@@ -6,6 +6,10 @@
 #    repository root) under [tool.repokit-common] in pyproject.toml or
 #    .repokit-common.toml; paths in .repokit-allowlist are exempt from both
 # 3. Blocks files over 10 MB
+# 4. Runs each language's pre-commit step from hooks/profiles/, on every branch:
+#    for languages = ["paradox"] (a Paradox game mod), blocks a localization
+#    .yml (under localization/ or localisation/) staged without a UTF-8 BOM,
+#    which the games skip without an error
 
 # Shared code (finding the vendored copy, the version tools and the settings;
 # the branch lists) lives in lib.sh beside this hook.
@@ -20,7 +24,7 @@ rk_locate
 # One settings call for the whole hook; its result is acted on at the
 # private-content check below. The output style is chosen from it now.
 _rk_settings_ok=true
-rk_read_settings private-patterns private-branches output version-source versioning || _rk_settings_ok=false
+rk_read_settings private-patterns private-branches output version-source versioning languages || _rk_settings_ok=false
 rk_setup_output
 
 # PART 1: Update version.py
@@ -55,6 +59,20 @@ elif [ -n "$UPDATE_SCRIPT" ]; then
     # Fallback to legacy bash script
     "$UPDATE_SCRIPT" --auto 2>&1 || echo "${RK_WARN} Warning: Version update failed but continuing"
 fi
+
+# PART 1b: each language's pre-commit step (hooks/profiles/<language>.sh)
+# -------------------------------------------------
+# On every branch, before the private-branch exit below: a check on the staged
+# files that protects the product itself (paradox: localization encoding).
+if ! rk_load_profiles; then
+    echo "repokit-common: $(basename "$0") cannot run -- profiles/ is not beside it in $(dirname "$0")." >&2
+    echo "  Re-run install-hooks.sh from the vendored repokit-common copy." >&2
+    exit 1
+fi
+for _rk_l in ${REPOKIT_LANGUAGES:-}; do
+    _rk_fn="$(rk_profile_fn "$_rk_l" precommit)"
+    [ -n "$_rk_fn" ] && "$_rk_fn"
+done
 
 # PART 2: Check for private content
 # -------------------------------------------------

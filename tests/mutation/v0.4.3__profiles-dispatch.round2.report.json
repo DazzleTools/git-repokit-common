@@ -1,0 +1,448 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_pre_push_hook.py",
+      "tests/test_pre_commit_hook.py",
+      "-k",
+      "profile or outside_the_profiles or relative_path or two_language or python or c_cpp or paradox or tiger or typescript or javascript or syntax or bom"
+    ],
+    "timestamp": "2026-10-30T19:36:46-04:00"
+  },
+  "results": [
+    {
+      "id": "R1",
+      "file": "hooks/lib.sh",
+      "note": "Sourced without the -f test: a language with no profile errors.",
+      "verdict": "survived",
+      "restore_ok": true,
+      "output_tail": ""
+    },
+    {
+      "id": "R2",
+      "file": "hooks/lib.sh",
+      "note": "'-' not allowed: c-cpp's profile never loads.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "pp_project_is_detected_and_runs_no_product_checks(repo):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- a CMake project with no setting is detected\n        as c-cpp: the Python checks (pdb, print count, and since 0.4.3 the syntax\n        check, Q261023-01) do not run on its tooling scripts; the tests still do.\"\"\"\n        noisy = \"import pdb\\n\" + \"\".join(f\"print({i})\\n\" for i in range(25))\n        r, out, landed = _push(repo, {\"CMakeLists.txt\": \"project(demo)\\n\", \"tools/gen.py\": noisy,\n                                      \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n        assert \"Product languages: c-cpp\" in out\n>       assert \"c-cpp: no product checks (the build and tests are the gate)\" in out   # its profile, not the fallback\nE       AssertionError: assert 'c-cpp: no product checks (the build and tests are the gate)' in '-- Pre-push validation for branch: main\\n  Product languages: c-cpp\\n\\n\\nRunning tests...\\n  scope: tests/ (one-offs/...for this language yet\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:193: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks\n1 failed, 39 passed, 73 deselected in 73.49s (0:01:13)\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ]
+    },
+    {
+      "id": "R3",
+      "file": "hooks/pre-push",
+      "note": "A language without a product step is skipped silently.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "t_a_new_profile_file_is_pic0/remote.git'))\n\n    def test_a_new_profile_file_is_picked_up_without_a_hook_change(repo):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- a language gains checks by adding\n        hooks/profiles/<language>.sh (repokit-common's own, or later a pack's):\n        its product step runs, and a language with no profile says so.\"\"\"\n        _w(repo[1] / \"profiles\" / \"rust.sh\", 'rk_profile_rust_product() {\\n    echo \"  RUST-PRODUCT ran\"\\n}\\n')\n        cfg = '[tool.repokit-common]\\nlanguages = [\"rust\", \"zig\"]\\n'\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, \"tests/test_a.py\": PASSING})\n        assert r.returncode == 0 and landed, out\n        assert \"RUST-PRODUCT ran\" in out\n>       assert \"zig: no product checks for this language yet\" in out\nE       AssertionError: assert 'zig: no product checks for this language yet' in '-- Pre-push validation for branch: main\\n  Product languages: rust zig\\n\\n\\nRunning tests...\\n  scope: tests/ (one-of....\\n  RUST-PRODUCT ran\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:334: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change\n1 failed, 39 passed, 73 deselected in 76.85s (0:01:16)\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ]
+    },
+    {
+      "id": "R4",
+      "file": "hooks/lib.sh",
+      "note": "command -v's output joins the function name.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]\nFAILED tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project\nFAILED tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]\nFAILED tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked\nFAILED tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file\n23 failed, 17 passed, 73 deselected in 66.59s (0:01:06)\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push",
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks",
+        "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles",
+        "tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder",
+        "tests/test_pre_push_hook.py::test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting",
+        "tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block"
+      ]
+    },
+    {
+      "id": "R5",
+      "file": "hooks/lib.sh",
+      "note": "The pre-cd hooks folder is ignored.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "t.strip()\n        bash = shutil.which(\"bash\")\n        if bash is None:\n            pytest.skip(\"bash not found\")\n        r = subprocess.run([bash, \"../.git/hooks/pre-push\", \"origin\", \"unused\"], cwd=root / \"sub\",\n                           input=f\"refs/heads/main {sha} refs/heads/main {'0' * 40}\\n\",\n                           capture_output=True, text=True, encoding=\"utf-8\", errors=\"replace\")\n        out = r.stdout + r.stderr\n>       assert \"profiles/ is not beside it\" not in out, out\nE       AssertionError: repokit-common: pre-push cannot run -- profiles/ is not beside it in ../.git/hooks.\nE           Re-run install-hooks.sh from the vendored repokit-common copy.\nE         \nE       assert 'profiles/ is not beside it' not in 'repokit-com...mmon copy.\\n'\nE         \nE         'profiles/ is not beside it' is contained here:\nE           repokit-common: pre-push cannot run -- profiles/ is not beside it in ../.git/hooks.\nE         ?                                        ++++++++++++++++++++++++++\nE             Re-run install-hooks.sh from the vendored repokit-common copy.\n\ntests\\test_pre_push_hook.py:304: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder\n1 failed, 39 passed, 73 deselected in 76.69s (0:01:16)\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ]
+    }
+  ],
+  "summary": {
+    "survived": 1,
+    "killed": 4
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]": [
+        "R4"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]": [
+        "R4"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]": [
+        "R4"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]": [
+        "R4"
+      ],
+      "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked": [
+        "R4"
+      ],
+      "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks": [
+        "R2",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder": [
+        "R4",
+        "R5"
+      ],
+      "tests/test_pre_push_hook.py::test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project": [
+        "R4"
+      ],
+      "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block": [
+        "R4"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push",
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks",
+        "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles",
+        "tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning",
+        "tests/test_pre_push_hook.py::test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting",
+        "tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block"
+      ]
+    ],
+    "contained": [
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-local]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localization-main]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_an_edit_that_drops_the_bom_from_a_committed_file_is_blocked",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_root_level_syntax_error_blocks_the_push",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_tiger_that_cannot_run_is_reported_and_never_blocks",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_two_language_project_runs_both_profiles",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_a_typescript_project_gets_its_own_checks_and_loses_the_python_warning",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_python_syntax_still_runs_for_a_project_that_is_python_only_by_default",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_python_profile_runs_as_before_with_no_setting",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_syntax_check_leaves_no_bytecode_in_the_project",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block",
+        "tests/test_pre_push_hook.py::test_a_c_cpp_project_is_detected_and_runs_no_product_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_summarized_and_never_block",
+        "tests/test_pre_push_hook.py::test_profiles_are_found_when_the_hook_is_run_by_a_relative_path_from_a_subfolder"
+      ]
+    ],
+    "killed_without_names": []
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_sync_versions_extra_targets.py::test_match_first_updates_only_the_first_field"
+    ],
+    "timestamp": "2026-10-30T16:59:30-04:00"
+  },
+  "results": [
+    {
+      "id": "M9",
+      "file": "sync-versions.py",
+      "note": "match='first' updates the last occurrence.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "st_updates_only_the_first_field ________________\n\ntmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14638/test_match_first_updates_only_0')\n\n    def test_match_first_updates_only_the_first_field(tmp_path):\n        \"\"\"CONSEQUENCE: 4 (behaviour) -- match=\"first\" updates the first field (the\n        marketplace's own version) and leaves the later one (the plugin entry's)\n        alone. Compared as whole text: a count of each version cannot tell the\n        first field from the last (the 0.4.3 sweep's M9 survived it).\"\"\"\n        f = _target(tmp_path, MARKET, \"marketplace.json\")\n        _sync(tmp_path, {\"path\": \"marketplace.json\", \"match\": \"first\"})\n>       assert f.read_text(encoding=\"utf-8\") == MARKET.replace('\"0.3.1\"', '\"0.3.2\"', 1)\nE       assert '{\\n  \"name\":.../\"}\\n  ]\\n}\\n' == '{\\n  \"name\":.../\"}\\n  ]\\n}\\n'\nE         \nE           {\nE             \"name\": \"cat\",\nE         -   \"version\": \"0.3.2\",\nE         ?                   ^\nE         +   \"version\": \"0.3.1\",\nE         ?                   ^...\nE         \nE         ...Full output truncated (7 lines hidden), use '-vv' to show\n\ntests\\test_sync_versions_extra_targets.py:188: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_match_first_updates_only_the_first_field\n1 failed in 0.20s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_match_first_updates_only_the_first_field"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 1
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_sync_versions_extra_targets.py::test_match_first_updates_only_the_first_field": [
+        "M9"
+      ]
+    },
+    "identical": [],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

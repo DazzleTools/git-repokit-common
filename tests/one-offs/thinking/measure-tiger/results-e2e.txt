@@ -1,0 +1,75 @@
+C:\code\git-repokit-common\tests\one-offs\thinking\measure-tiger\e2e_push.py:123: DeprecationWarning: onerror argument is deprecated, use onexc instead
+  shutil.rmtree(work, onerror=_writable_then_retry)
+
+===== 1. CK3 mod, real ck3-tiger: commit exit 0, push exit 0, landed True
+   [OK] Version updated for commit
+   -- Pre-Commit Check
+      Branch: main (public)
+   -- Pre-push validation for branch: main
+     Product languages: paradox
+   Linting the mod with ck3-tiger (mod/descriptor.mod)...
+     ck3-tiger is older than the game it found; some reports may be wrong
+   [!] ck3-tiger: fatal: 55, error: 346, warning: 501, untidy: 0, tips: 2 (not blocking)
+     full report: C:/Users/Extreme/AppData/Local/Temp/rk-e2e-zmtm16ve/ck3-mod/.git/repokit-ck3-tiger.txt
+   Running tests...
+     scope: tests/ (one-offs/ and thinking/ excluded)
+   [!] No test files found (tests/test_*.py) -- skipping
+   Checking for debug statements...
+     paradox: no debugger or print checks (the linter is the check)
+   [OK] No debugger statements found
+   [OK] Pre-push validation complete
+   Ready to push to main
+   descriptor.mod lines changed by the commit: [(b'version="1.3.0"', b'version="0.2.0"')]
+   descriptor.mod BOM before/after: False/False, CRLF before/after: False/False
+   report: True (4728 lines)
+
+===== 1b. localization without a BOM: commit exit 1
+   [X] COMMIT BLOCKED - localization file without a UTF-8 BOM
+     - mod/localization/english/DP_information_l_english.yml
+   The game skips such a file without an error. Save it as "UTF-8 with BOM",
+   stage it again, and commit.
+
+===== 2. Python by default, broken tooling script: commit exit 0, push exit 1, landed False
+   [!] Warning: Version update failed but continuing:
+       Error: Cannot find $PACKAGE_NAME/_version.py. Run from project root.
+   -- Pre-Commit Check
+      Branch: main (public)
+   [!] Warning: version hash not updated for 44c5524:
+       Error: Cannot find $PACKAGE_NAME/_version.py. Run from project root.
+   -- Pre-push validation for branch: main
+     Product languages: python
+   Checking Python syntax...
+   [X] Python syntax errors found
+   *** Error compiling '.\\tools\\gen.py'...
+     File ".\tools\gen.py", line 1
+       def broken(:
+                  ^
+   SyntaxError: invalid syntax
+   Fix syntax errors before pushing
+   error: failed to push some refs to 'C:\Users\Extreme\AppData\Local\Temp\rk-e2e-zmtm16ve\py-default.git'
+
+===== 3. typescript + python (claude-bookmarks shape): commit exit 0, push exit 0, landed True
+   -- Pre-Commit Check
+      Branch: main (public)
+   -- Pre-push validation for branch: main
+     Product languages: typescript python
+   Checking typescript...
+     check-command: echo tsc-would-run-on-plugin
+   tsc-would-run-on-plugin
+   [OK] typescript check-command passed
+   Checking Python syntax...
+   [OK] Python syntax check passed
+   Running tests...
+     scope: tests/ (one-offs/ and thinking/ excluded)
+   C:\Python312\Lib\site-packages\pytest_asyncio\plugin.py:211: PytestDeprecationWarning: The configuration option "asyncio_default_fixture_loop_scope" is unset.
+   The event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set
+     warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))
+   .                                                                        [100%]
+   1 passed in 0.01s
+   [OK] All tests passed
+   Checking for debug statements...
+   [OK] No debugger statements found
+   [OK] Pre-push validation complete
+   Ready to push to main
+
+(temp folder removed: True)

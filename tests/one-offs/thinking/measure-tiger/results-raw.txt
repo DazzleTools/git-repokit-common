@@ -1,0 +1,68 @@
+=== descriptor file: exit 0, 4750 lines, 6.6s, escape codes: yes
+    lines starting 'error': 0
+    lines starting 'warning': 0
+    lines starting 'tips': 0
+    lines starting 'untidy': 0
+    lines starting 'fatal': 0
+    first lines:
+      [1;37mfatal(crash)[0m: [1m`event_background` now causes a crash. It has been replaced by `reference` since 1.9[0m
+        [1;34m-->[0m [1;34m[MOD][0m [1;34mevents\dp_char_editor.txt[0m
+      [1;34m14[0m [1;34m|[0m     override_background = { event_background = study }
+         [1;34m|[0m                             [1;37m^^^^^^^^^^^^^^^^[0m [1;37m[0m
+      
+      [1;37mfatal(crash)[0m: [1m`event_background` now causes a crash. It has been replaced by `reference` since 1.9[0m
+    last lines:
+      Please check if there is a newer version of Tiger that supports this version.
+      Using mod directory: C:\Users\Extreme\AppData\Local\Temp\tiger-probe-wqfj296h\mod
+      
+=== mod folder (the hook's call before the fix): exit 0, 4728 lines, 5.1s, escape codes: yes
+    lines starting 'error': 0
+    lines starting 'warning': 0
+    lines starting 'tips': 0
+    lines starting 'untidy': 0
+    lines starting 'fatal': 0
+    first lines:
+      [1;37mfatal(crash)[0m: [1m`event_background` now causes a crash. It has been replaced by `reference` since 1.9[0m
+        [1;34m-->[0m [1;34m[MOD][0m [1;34mevents\dp_char_editor.txt[0m
+      [1;34m14[0m [1;34m|[0m     override_background = { event_background = study }
+         [1;34m|[0m                             [1;37m^^^^^^^^^^^^^^^^[0m [1;37m[0m
+      
+      [1;37mfatal(crash)[0m: [1m`event_background` now causes a crash. It has been replaced by `reference` since 1.9[0m
+    last lines:
+      Please check if there is a newer version of Tiger that supports this version.
+      Using mod directory: C:\Users\Extreme\AppData\Local\Temp\tiger-probe-wqfj296h\mod
+      
+=== clean minimal mod, descriptor file: exit 0, 12 lines, 4.2s, escape codes: yes
+    lines starting 'error': 0
+    lines starting 'warning': 0
+    lines starting 'tips': 0
+    lines starting 'untidy': 0
+    lines starting 'fatal': 0
+    first lines:
+      [1;37mfatal: 0[0m, [1;31merror: 0[0m, [1;33mwarning[0m[33m: 0[0m, [1;36muntidy[0m[36m: 0[0m, [1;32mtips[0m[32m: 0[0m
+      Using CK3 directory: E:\SteamLibrary\steamapps\common\Crusader Kings III
+      
+      PLEASE UPDATE!
+      
+      Tiger was made for Crusader Kings 3 version 1.19.0 (Scribe),
+    last lines:
+      Using mod directory: C:\Users\Extreme\AppData\Local\Temp\tiger-probe-wqfj296h\clean
+      
+      No problems found.
+=== descriptor file, --no-color: exit 0, 4728 lines, 4.9s, escape codes: no
+    lines starting 'error': 346
+    lines starting 'warning': 501
+    lines starting 'tips': 2
+    lines starting 'untidy': 0
+    lines starting 'fatal': 56
+    first lines:
+      fatal(crash): `event_background` now causes a crash. It has been replaced by `reference` since 1.9
+        --> [MOD] events\dp_char_editor.txt
+      14 |     override_background = { event_background = study }
+         |                             ^^^^^^^^^^^^^^^^ 
+      
+      fatal(crash): `event_background` now causes a crash. It has been replaced by `reference` since 1.9
+    last lines:
+      Please check if there is a newer version of Tiger that supports this version.
+      Using mod directory: C:\Users\Extreme\AppData\Local\Temp\tiger-probe-wqfj296h\mod
+      

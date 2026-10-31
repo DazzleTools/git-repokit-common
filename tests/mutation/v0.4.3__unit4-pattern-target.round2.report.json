@@ -1,0 +1,523 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_sync_versions_extra_targets.py"
+    ],
+    "timestamp": "2026-10-30T13:16:08-04:00"
+  },
+  "results": [
+    {
+      "id": "R1",
+      "file": "sync-versions.py",
+      "note": "A pattern target that also names 'field' is accepted.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "'^version=\"[^\"]*\"$'}, \"exactly one group\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^(version)=\"([^\"]*)\"$'}, \"exactly one group\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^version=\"(['}, \"not a valid regular expression\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": \"\"}, \"non-empty 'pattern'\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"field\": \"version\"}, \"'field' is for json\"),\n        ({\"path\": \"descriptor.mod\", \"pattern\": '^v=\"(.*)\"$', \"type\": \"json\"}, \"'pattern' is for pattern\"),\n        ({\"path\": \"descriptor.mod\", \"type\": \"pattern\"}, \"non-empty 'pattern'\"),\n    ])\n    def test_bad_pattern_entries_are_named_not_guessed(tmp_path, spec, message):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- a pattern with no group or two, an invalid\n        one, a missing one, or one mixed with a JSON field is an error naming the\n        problem, and the file is untouched.\"\"\"\n        f = _target(tmp_path, DESCRIPTOR, \"descriptor.mod\")\n>       with pytest.raises(SV.TargetError, match=message):\nE       Failed: DID NOT RAISE <class 'sync_versions_et.TargetError'>\n\ntests\\test_sync_versions_extra_targets.py:289: Failed\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]\n1 failed, 46 passed in 3.64s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ]
+    },
+    {
+      "id": "R2",
+      "file": "sync-versions.py",
+      "note": "An invalid pattern escapes as a raw re.error.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "e, this, state)\n                subpatternappend(code)\n    \n            elif this not in SPECIAL_CHARS:\n                subpatternappend((LITERAL, _ord(this)))\n    \n            elif this == \"[\":\n                here = source.tell() - 1\n                # character set\n                set = []\n                setappend = set.append\n    ##          if sourcematch(\":\"):\n    ##              pass # handle character classes\n                if source.next == '[':\n                    import warnings\n                    warnings.warn(\n                        'Possible nested set at position %d' % source.tell(),\n                        FutureWarning, stacklevel=nested + 6\n                    )\n                negate = sourcematch(\"^\")\n                # check remaining characters\n                while True:\n                    this = sourceget()\n                    if this is None:\n>                       raise source.error(\"unterminated character set\",\n                                           source.tell() - here)\nE                       re.error: unterminated character set at position 11\n\nC:\\Python312\\Lib\\re\\_parser.py:561: error\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]\n1 failed, 46 passed in 3.80s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]"
+      ]
+    },
+    {
+      "id": "R3",
+      "file": "sync-versions.py",
+      "note": "The type set loses 'pattern'.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "es_only_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n15 failed, 32 passed in 4.31s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ]
+    },
+    {
+      "id": "R4",
+      "file": "sync-versions.py",
+      "note": "The key set loses 'pattern'.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ly_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]\nFAILED tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n15 failed, 32 passed in 3.93s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ]
+    },
+    {
+      "id": "R5",
+      "file": "sync-versions.py",
+      "note": "--check falls through and writes.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "reme/AppData/Local/Temp/pytest-of-Extreme/pytest-14631/test_check_exits_1_while_a_tar0')\n\n    def test_check_exits_1_while_a_target_is_stale_and_0_once_synced(tmp_path):\n        \"\"\"CONSEQUENCE: 9 (safety) -- the pre-push / CI gate: --check fails on\n        a stale target and passes after a sync.\"\"\"\n        root = _project(tmp_path, PLUGIN_TARGET)\n        (root / \"mypkg\" / \"_version.py\").write_text(\n            VERSION_PY.replace(\"PATCH = 1\", \"PATCH = 2\"), encoding=\"utf-8\")\n        stale = _run(root, \"--check\", \"--no-git-ver\")\n>       assert stale.returncode == 1 and \"plugin.json\" in stale.stdout\nE       AssertionError: assert (0 == 1)\nE        +  where 0 = CompletedProcess(args=['C:\\\\Python312\\\\python.exe', 'scripts/sync-versions.py', '--check', '--no-git-ver'], returncode...: 0.3.2  (PEP 440: 0.3.2, tag: v0.3.2)\\n  [OK] plugin.json: version updated\\n\\nAll versions are in sync.\\n', stderr='').returncode\n\ntests\\test_sync_versions_extra_targets.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_check_mode_reports_stale_and_writes_nothing\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_check_exits_1_while_a_target_is_stale_and_0_once_synced\n3 failed, 44 passed in 3.48s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_check_exits_1_while_a_target_is_stale_and_0_once_synced",
+        "tests/test_sync_versions_extra_targets.py::test_check_mode_reports_stale_and_writes_nothing",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ]
+    },
+    {
+      "id": "R6",
+      "file": "sync-versions.py",
+      "note": "A pattern target is scanned as JSON.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ons.py', '--bump', 'patch', '--no-git-ver'], re...alue: line 1 column 1 (char 0)\\n  [X] other/descriptor.mod: invalid JSON: Expecting value: line 1 column 1 (char 0)\\n').returncode\n\ntests\\test_sync_versions_extra_targets.py:383: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format\nFAILED tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line\n9 failed, 38 passed in 4.03s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 6
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]": [
+        "R2",
+        "R3",
+        "R4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']": [
+        "R3",
+        "R4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]": [
+        "R1",
+        "R3",
+        "R4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]": [
+        "R4"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']": [
+        "R3"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_check_exits_1_while_a_target_is_stale_and_0_once_synced": [
+        "R5"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_check_mode_reports_stale_and_writes_nothing": [
+        "R5"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format": [
+        "R3",
+        "R4",
+        "R5",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]": [
+        "R3",
+        "R4",
+        "R6"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error": [
+        "R3",
+        "R4",
+        "R6"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_check_exits_1_while_a_target_is_stale_and_0_once_synced",
+        "tests/test_sync_versions_extra_targets.py::test_check_mode_reports_stale_and_writes_nothing"
+      ]
+    ],
+    "contained": [
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec5-'pattern' is for pattern]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec0-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec1-exactly one group]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec2-not a valid regular expression]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec3-non-empty 'pattern']"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec4-'field' is for json]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bad_pattern_entries_are_named_not_guessed[spec6-non-empty 'pattern']",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_bump_carries_the_version_into_a_descriptor_and_notes_one_without_a_line",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_check_exits_1_while_a_target_is_stale_and_0_once_synced",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_check_mode_reports_stale_and_writes_nothing",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[crlf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_rewrites_only_the_version_group_byte_for_byte[lf-no-bom]",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ],
+      [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_with_no_matching_line_is_absent_not_an_error",
+        "tests/test_sync_versions_extra_targets.py::test_pattern_check_mode_and_format"
+      ]
+    ],
+    "killed_without_names": []
+  }
+}

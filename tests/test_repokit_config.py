@@ -316,7 +316,49 @@ def test_a_languages_value_that_is_not_a_list_of_names_exits_2(tmp_path, capsys)
     tool = _w(proj / "scripts" / "tool.py")
     _init(proj)
     assert RC.main(["--get", "languages", "--start", str(tool.parent)]) == 2
-    assert "languages must be a list" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "languages must be a list" in err
+    assert "paradox" in err  # the known names a project can declare include paradox (0.4.3)
+
+
+def test_check_command_table_reaches_the_hooks_one_variable_per_language(tmp_path, capsys):
+    """CONSEQUENCE: 7 (behaviour) -- [tool.repokit-common.check-command] becomes
+    REPOKIT_CHECK_COMMAND (the languages named) and one REPOKIT_CHECK_COMMAND_<LANG>
+    each, an empty command kept as set-but-empty; unset, only the empty list."""
+    proj = tmp_path / "proj"
+    _w(proj / ".repokit-common.toml",
+       '[tool.repokit-common.check-command]\npython = "ruff check ."\nc-cpp = ""\n')
+    tool = _w(proj / "scripts" / "tool.py")
+    _init(proj)
+    assert RC.main(["--shell", "check-command", "--start", str(tool.parent)]) == 0
+    assert capsys.readouterr().out == (
+        "REPOKIT_CHECK_COMMAND='python c-cpp'\n"
+        "REPOKIT_CHECK_COMMAND_PYTHON='ruff check .'\n"
+        "REPOKIT_CHECK_COMMAND_C_CPP=''\n")
+    assert RC.main(["--get", "check-command", "--start", str(tool.parent)]) == 0
+    assert capsys.readouterr().out == "python\truff check .\nc-cpp\t\n"
+    _w(proj / ".repokit-common.toml", '[tool.repokit-common]\nversioning = "off"\n')
+    assert RC.main(["--shell", "check-command", "--start", str(tool.parent)]) == 0
+    assert capsys.readouterr().out == "REPOKIT_CHECK_COMMAND=''\n"
+    assert RC.main(["--get", "check-command", "--start", str(tool.parent)]) == 0
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize("setting", [
+    'check-command = "ruff"',          # no language
+    'check-command = ""',              # empty, still not a table
+    'check-command.python = 1',        # a command that is not text
+])
+def test_a_check_command_that_is_not_a_table_of_commands_exits_2(tmp_path, capsys, setting):
+    """CONSEQUENCE: 6 (safety) -- a check-command that is not a table of text
+    commands is named as the error, so the hook stops instead of silently
+    running the default."""
+    proj = tmp_path / "proj"
+    _w(proj / ".repokit-common.toml", f'[tool.repokit-common]\n{setting}\n')
+    tool = _w(proj / "scripts" / "tool.py")
+    _init(proj)
+    assert RC.main(["--shell", "check-command", "--start", str(tool.parent)]) == 2
+    assert "check-command must be a table" in capsys.readouterr().err
 
 
 def test_get_prints_booleans_lowercase_and_nothing_for_unset_keys(tmp_path, capsys):

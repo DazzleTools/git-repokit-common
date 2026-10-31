@@ -1,0 +1,60 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_pre_push_hook.py",
+      "tests/test_pre_commit_hook.py",
+      "-k",
+      "new_profile_file or without_a_profile"
+    ],
+    "timestamp": "2026-10-30T19:37:48-04:00"
+  },
+  "results": [
+    {
+      "id": "R1",
+      "file": "hooks/lib.sh",
+      "note": "Sourced without the -f test: a language with no profile errors.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "a project declaring a language with no\n        profile file (rust) commits as before: pre-commit runs under sh, where\n        sourcing a missing file would end the hook and refuse every commit.\"\"\"\n        root, hooks = repo\n        _configure(root, raw='[tool.repokit-common]\\nlanguages = [\"rust\", \"python\"]\\n')\n        result = _commit(root, hooks, \"src/main.rs\", \"fn main() {}\\n\")\n>       assert result.returncode == 0, result.stdout + result.stderr\nE       AssertionError: C:\\Users\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-14693\\test_a_language_without_a_prof0\\repo\\.git\\hooks/lib.sh: line 142: /tmp/pytest-of-Extreme/pytest-14693/test_a_language_without_a_prof0/repo/.git/hooks/profiles/rust.sh: No such file or directory\nE         \nE       assert 1 == 0\nE        +  where 1 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...of-Extreme/pytest-14693/test_a_language_without_a_prof0/repo/.git/hooks/profiles/rust.sh: No such file or directory\\n').returncode\n\ntests\\test_pre_commit_hook.py:488: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change\nFAILED tests/test_pre_commit_hook.py::test_a_language_without_a_profile_commits\n2 failed, 112 deselected in 6.39s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_a_language_without_a_profile_commits",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 1
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_commit_hook.py::test_a_language_without_a_profile_commits": [
+        "R1"
+      ],
+      "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change": [
+        "R1"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_pre_commit_hook.py::test_a_language_without_a_profile_commits",
+        "tests/test_pre_push_hook.py::test_a_new_profile_file_is_picked_up_without_a_hook_change"
+      ]
+    ],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

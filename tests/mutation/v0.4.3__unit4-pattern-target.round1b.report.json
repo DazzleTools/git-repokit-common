@@ -1,0 +1,62 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_sync_versions_extra_targets.py"
+    ],
+    "timestamp": "2026-10-30T13:14:45-04:00"
+  },
+  "results": [
+    {
+      "id": "M9",
+      "file": "sync-versions.py",
+      "note": "match='first' updates the last occurrence.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "ern_matching_two_lines_is_refused_unless_match_all(tmp_path):\n        \"\"\"CONSEQUENCE: 8 (safety) -- a pattern that matches more than one line is\n        refused untouched; match = \"all\" updates every one, \"first\" the first.\"\"\"\n        text = DESCRIPTOR + 'version=\"0.3.1\"\\n'\n        f = _target(tmp_path, text, \"descriptor.mod\")\n        with pytest.raises(SV.TargetError, match='2 lines match the pattern; set match = \"all\"'):\n            _sync(tmp_path, DESC_SPEC)\n        assert f.read_text(encoding=\"utf-8\") == text\n        assert _sync(tmp_path, dict(DESC_SPEC, match=\"first\")) == \"updated\"\n        after_first = f.read_text(encoding=\"utf-8\")\n>       assert after_first.startswith('version=\"0.3.2\"\\n')            # the first line ...\nE       assert False\nE        +  where False = <built-in method startswith of str object at 0x000001EF27F55840>('version=\"0.3.2\"\\n')\nE        +    where <built-in method startswith of str object at 0x000001EF27F55840> = 'version=\"0.3.1\"\\ntags={\\n\\t\"Utilities\"\\n}\\nname=\"Demo\"\\nsupported_version=\"1.20.*\"\\nremote_file_id=\"2216746850\"\\nversion=\"0.3.2\"\\n'.startswith\n\ntests\\test_sync_versions_extra_targets.py:243: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all\n1 failed, 46 passed in 3.89s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all"
+      ]
+    },
+    {
+      "id": "M11",
+      "file": "sync-versions.py",
+      "note": "Forward splicing: a length change shifts later offsets under match='all'.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "'C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14625/test_pattern_match_all_with_a_0')\n\n    def test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly(tmp_path):\n        \"\"\"CONSEQUENCE: 8 (safety) -- when the new version is longer than the old\n        (0.3.1 -> 0.3.2-alpha), every matched line still gets exactly the new text:\n        an edit at one line must not shift where the next one lands.\"\"\"\n        text = DESCRIPTOR + 'version=\"0.3.1\"\\n'\n        f = _target(tmp_path, text, \"descriptor.mod\")\n        spec = {\"path\": \"descriptor.mod\", \"pattern\": DESC_PATTERN, \"match\": \"all\"}\n        assert _sync(tmp_path, spec, components=ALPHA) == \"updated\"\n        human = SV.format_human_version(ALPHA)\n>       assert f.read_text(encoding=\"utf-8\") == text.replace('version=\"0.3.1\"', f'version=\"{human}\"')\nE       assert 'version=\"0.3...lpha\"0.3.1\"\\n' == 'version=\"0.3....3.2-alpha\"\\n'\nE         \nE         Skipping 104 identical leading characters in diff, use -v to show\nE           46850\"\nE         - version=\"0.3.2-alpha\"\nE         + ver0.3.2-alpha\"0.3.1\"\n\ntests\\test_sync_versions_extra_targets.py:258: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly\n1 failed, 46 passed in 3.92s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 2
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_sync_versions_extra_targets.py::test_pattern_match_all_with_a_longer_version_rewrites_every_line_exactly": [
+        "M11"
+      ],
+      "tests/test_sync_versions_extra_targets.py::test_pattern_matching_two_lines_is_refused_unless_match_all": [
+        "M9"
+      ]
+    },
+    "identical": [],
+    "contained": [],
+    "killed_without_names": []
+  }
+}

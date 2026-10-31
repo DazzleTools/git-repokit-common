@@ -1,0 +1,275 @@
+{
+  "harness": {
+    "name": "mutation_sweep.py",
+    "version": "0.2.0"
+  },
+  "environment": {
+    "python": "3.12.0",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "root": ".",
+    "test_command": [
+      "python",
+      "-m",
+      "pytest",
+      "-q",
+      "-p",
+      "no:cacheprovider",
+      "tests/test_repokit_config.py",
+      "tests/test_pre_push_hook.py",
+      "tests/test_pre_commit_hook.py",
+      "-k",
+      "paradox or tiger or bom or languages"
+    ],
+    "timestamp": "2026-10-30T12:53:01-04:00"
+  },
+  "results": [
+    {
+      "id": "M1",
+      "file": "hooks/pre-push",
+      "note": "Widened: any mod/ folder counts as the mod, even without a descriptor.mod.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": ".mod in mod/ or at the root\"),\n    ])\n    def test_the_paradox_game_and_the_mod_folder_choose_the_linter(repo, tmp_path, cfg_extra, files, expected):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- paradox-game picks the Tiger build (vic3\n        lints a mod whose descriptor.mod sits at the root); a game with no Tiger,\n        no game, or no descriptor.mod each say why nothing ran, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, name=\"vic3-tiger\")\n        cfg = '[tool.repokit-common]\\nlanguages = [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert expected in out\nE       AssertionError: assert 'paradox: no descriptor.mod in mod/ or at the root' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n  paradox: ck3-tiger is not on PATH -- linte... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]\n1 failed, 27 passed, 108 deselected in 23.11s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]"
+      ]
+    },
+    {
+      "id": "M2",
+      "file": "hooks/pre-push",
+      "note": "The root-descriptor fallback is removed.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "\"}, \"paradox: no descriptor.mod in mod/ or at the root\"),\n    ])\n    def test_the_paradox_game_and_the_mod_folder_choose_the_linter(repo, tmp_path, cfg_extra, files, expected):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- paradox-game picks the Tiger build (vic3\n        lints a mod whose descriptor.mod sits at the root); a game with no Tiger,\n        no game, or no descriptor.mod each say why nothing ran, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, name=\"vic3-tiger\")\n        cfg = '[tool.repokit-common]\\nlanguages = [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert expected in out\nE       AssertionError: assert 'Linting the mod with vic3-tiger (.)' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n  paradox: no descriptor.mod in mod/ or at t... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\n1 failed, 27 passed, 108 deselected in 22.67s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ]
+    },
+    {
+      "id": "M3",
+      "file": "hooks/pre-push",
+      "note": "The linter name is hardcoded: vic3 and imperator would run ck3-tiger.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "\"}, \"paradox: no descriptor.mod in mod/ or at the root\"),\n    ])\n    def test_the_paradox_game_and_the_mod_folder_choose_the_linter(repo, tmp_path, cfg_extra, files, expected):\n        \"\"\"CONSEQUENCE: 6 (behaviour) -- paradox-game picks the Tiger build (vic3\n        lints a mod whose descriptor.mod sits at the root); a game with no Tiger,\n        no game, or no descriptor.mod each say why nothing ran, and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, name=\"vic3-tiger\")\n        cfg = '[tool.repokit-common]\\nlanguages = [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert expected in out\nE       AssertionError: assert 'Linting the mod with vic3-tiger (.)' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n  paradox: ck3-tiger is not on PATH -- linte... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\n1 failed, 27 passed, 108 deselected in 23.64s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ]
+    },
+    {
+      "id": "M4",
+      "file": "hooks/pre-push",
+      "note": "The not-on-PATH guard is removed: a missing tiger is invoked anyway.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "____ test_a_paradox_mod_without_tiger_installed_skips_cleanly ___________\n\nrepo = (WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14569/test_a_paradox_mod_without_tig0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14569/test_a_paradox_mod_without_tig0/remote.git'))\n\n    @paradox_tiger_absent\n    def test_a_paradox_mod_without_tiger_installed_skips_cleanly(repo):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- with no ck3-tiger on PATH the push goes\n        through and says how to get a linter.\"\"\"\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR})\n        assert r.returncode == 0 and landed, out\n>       assert \"paradox: ck3-tiger is not on PATH -- linter skipped\" in out\nE       AssertionError: assert 'paradox: ck3-tiger is not on PATH -- linter skipped' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod)...\\nC:\\... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:323: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly\n1 failed, 27 passed, 108 deselected in 23.22s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly"
+      ]
+    },
+    {
+      "id": "M5",
+      "file": "hooks/pre-push",
+      "note": "Tiger findings block the push.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "nd_never_block(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger as the default linter is advisory:\n        a non-zero exit on main is reported and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, code=2)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n>       assert r.returncode == 0 and landed, out\nE       AssertionError: -- Pre-push validation for branch: main\nE           Product languages: paradox\nE         \nE         Linting the mod with ck3-tiger (mod)...\nE         TIGER-RAN mod\nE         [!] ck3-tiger exited 2 -- its findings are above; not blocking\nE         error: failed to push some refs to 'C:\\Users\\Extreme\\AppData\\Local\\Temp\\pytest-of-Extreme\\pytest-14570\\test_tiger_findings_are_shown_0\\remote.git'\nE         \nE       assert (1 == 0)\nE        +  where 1 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...Users\\\\Extreme\\\\AppData\\\\Local\\\\Temp\\\\pytest-of-Extreme\\\\pytest-14570\\\\test_tiger_findings_are_shown_0\\\\remote.git'\\n\").returncode\n\ntests\\test_pre_push_hook.py:312: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block\n1 failed, 27 passed, 108 deselected in 23.26s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    },
+    {
+      "id": "M6",
+      "file": "hooks/pre-push",
+      "note": "The linter always gets the repository root instead of the mod folder.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "wn_0/repo'...sPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14571/test_tiger_findings_are_shown_0/remote.git'))\ntmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14571/test_tiger_findings_are_shown_0')\n\n    def test_tiger_findings_are_shown_and_never_block(repo, tmp_path):\n        \"\"\"CONSEQUENCE: 7 (behaviour) -- Tiger as the default linter is advisory:\n        a non-zero exit on main is reported and the push goes through.\"\"\"\n        env = _stub_tiger(tmp_path, code=2)\n        r, out, landed = _push(repo, {\".repokit-common.toml\": PARADOX_CFG, \"mod/descriptor.mod\": DESCRIPTOR}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert \"TIGER-RAN mod\" in out\nE       AssertionError: assert 'TIGER-RAN mod' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\nLinting the mod with ck3-tiger (mod)...\\nTIG... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:313: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block\n2 failed, 26 passed, 108 deselected in 23.28s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    },
+    {
+      "id": "M7",
+      "file": "hooks/pre-push",
+      "note": "The paradox default dispatch is dropped.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "or at the root' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n\\nRunning tests...\\n  scope: tests/ (one-off... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]\n7 failed, 21 passed, 108 deselected in 23.10s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    },
+    {
+      "id": "M8",
+      "file": "hooks/pre-push",
+      "note": "paradox-game is no longer read.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "      env = _stub_tiger(tmp_path, name=\"vic3-tiger\")\n        cfg = '[tool.repokit-common]\\nlanguages = [\"paradox\"]\\n' + cfg_extra\n        r, out, landed = _push(repo, {\".repokit-common.toml\": cfg, **files}, env=env)\n        assert r.returncode == 0 and landed, out\n>       assert expected in out\nE       assert 'paradox: no default linter for stellaris' in '-- Pre-push validation for branch: main\\n  Product languages: paradox\\n\\n  paradox: set paradox-game (e.g. \"ck3\") to ... linter is the check)\\n[OK] No debugger statements found\\n\\n[OK] Pre-push validation complete\\nReady to push to main\\n'\n\ntests\\test_pre_push_hook.py:340: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks\nFAILED tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block\nFAILED tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]\nFAILED tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]\n5 failed, 23 passed, 108 deselected in 22.68s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    },
+    {
+      "id": "M9",
+      "file": "hooks/pre-commit",
+      "note": "Narrowed: the localisation/ spelling is no longer checked.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "UENCE: 8 (safety) -- a mod's localization .yml staged without a\n        UTF-8 BOM stops the commit and is named, on a public and a private branch\n        alike, under either spelling of the folder: the game would skip the file\n        without an error.\"\"\"\n        root, hooks = repo\n        _configure(root, raw=PARADOX)\n        if branch != \"main\":\n            _git(root, \"checkout\", \"-q\", \"-b\", branch)\n        name = f\"mod/{folder}/english/demo_l_english.yml\"\n        result = _commit(root, hooks, name, LOC)\n        out = result.stdout + result.stderr\n>       assert result.returncode != 0, out\nE       AssertionError: Checking for private content on branch: local\nE         \nE       assert 0 != 0\nE        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...sation/english/demo_l_english.yml'], returncode=0, stdout='', stderr='Checking for private content on branch: local\\n').returncode\n\ntests\\test_pre_commit_hook.py:423: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]\nFAILED tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]\n2 failed, 26 passed, 108 deselected in 22.91s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]"
+      ]
+    },
+    {
+      "id": "M10",
+      "file": "hooks/pre-commit",
+      "note": "Narrowed to added files: a modified localization file that loses its BOM passes.",
+      "verdict": "survived",
+      "restore_ok": true,
+      "output_tail": ""
+    },
+    {
+      "id": "M11",
+      "file": "hooks/pre-commit",
+      "note": "The BOM is read from the working tree instead of the staged blob.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "test_the_bom_check_reads_the_s0/repo/.git/hooks'))\n\n    def test_the_bom_check_reads_the_staged_content_not_the_working_file(repo):\n        \"\"\"CONSEQUENCE: 7 (safety) -- fixing the working file without staging it\n        does not get the BOM-less staged copy through.\"\"\"\n        root, hooks = repo\n        _configure(root, raw=PARADOX)\n        name = \"mod/localization/english/demo_l_english.yml\"\n        path = root / name\n        path.parent.mkdir(parents=True)\n        path.write_bytes(LOC)\n        _git(root, \"add\", name)\n        path.write_bytes(BOM + LOC)\n        result = _git(root, \"commit\", \"-q\", \"-m\", \"loc\", hooks_dir=hooks, check=False)\n>       assert result.returncode != 0, result.stdout + result.stderr\nE       AssertionError: -- Pre-Commit Check\nE            Branch: main (public)\nE         \nE       assert 0 != 0\nE        +  where 0 = CompletedProcess(args=['git', '-c', 'user.email=hooktest@example.invalid', '-c', 'user.name=hooktest', '-c', 'commit.g...ooks', 'commit', '-q', '-m', 'loc'], returncode=0, stdout='', stderr='-- Pre-Commit Check\\n   Branch: main (public)\\n').returncode\n\ntests\\test_pre_commit_hook.py:450: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file\n1 failed, 27 passed, 108 deselected in 23.68s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file"
+      ]
+    },
+    {
+      "id": "M12",
+      "file": "repokit_config.py",
+      "note": "paradox dropped from the known languages.",
+      "verdict": "killed",
+      "restore_ok": true,
+      "output_tail": "====\n_________ test_a_languages_value_that_is_not_a_list_of_names_exits_2 __________\n\ntmp_path = WindowsPath('C:/Users/Extreme/AppData/Local/Temp/pytest-of-Extreme/pytest-14577/test_a_languages_value_that_is0')\ncapsys = <_pytest.capture.CaptureFixture object at 0x000001E03B9F60F0>\n\n    def test_a_languages_value_that_is_not_a_list_of_names_exits_2(tmp_path, capsys):\n        \"\"\"CONSEQUENCE: 6 (safety) -- `languages = \"python\"` is named as the error, not read as\n        a list of letters.\"\"\"\n        proj = tmp_path / \"proj\"\n        _w(proj / \"pyproject.toml\", '[tool.repokit-common]\\nlanguages = \"python\"\\n')\n        tool = _w(proj / \"scripts\" / \"tool.py\")\n        _init(proj)\n        assert RC.main([\"--get\", \"languages\", \"--start\", str(tool.parent)]) == 2\n        err = capsys.readouterr().err\n        assert \"languages must be a list\" in err\n>       assert \"paradox\" in err  # the known names a project can declare include paradox (0.4.3)\nE       assert 'paradox' in 'repokit-common: languages must be a list of names, e.g. languages = [\"python\"] (known: python, c-cpp, csharp, javascript, typescript)\\n'\n\ntests\\test_repokit_config.py:321: AssertionError\n=========================== short test summary info ===========================\nFAILED tests/test_repokit_config.py::test_a_languages_value_that_is_not_a_list_of_names_exits_2\n1 failed, 27 passed, 108 deselected in 23.37s\nC:\\Python312\\Lib\\site-packages\\pytest_asyncio\\plugin.py:211: PytestDeprecationWarning: The configuration option \"asyncio_default_fixture_loop_scope\" is unset.\nThe event loop scope for asynchronous fixtures will default to the fixture caching scope. Future versions of pytest-asyncio will default the loop scope for asynchronous fixtures to function scope. Set the default fixture loop scope explicitly in order to avoid unexpected behavior in the future. Valid fixture loop scopes are: \"function\", \"class\", \"module\", \"package\", \"session\"\n\n  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET))\n",
+      "killed_by": [
+        "tests/test_repokit_config.py::test_a_languages_value_that_is_not_a_list_of_names_exits_2"
+      ]
+    }
+  ],
+  "summary": {
+    "killed": 11,
+    "survived": 1
+  },
+  "anomalies": [],
+  "overlap": {
+    "kills": {
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]": [
+        "M9"
+      ],
+      "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]": [
+        "M9"
+      ],
+      "tests/test_pre_commit_hook.py::test_the_bom_check_reads_the_staged_content_not_the_working_file": [
+        "M11"
+      ],
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks": [
+        "M6",
+        "M7",
+        "M8"
+      ],
+      "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly": [
+        "M4",
+        "M7",
+        "M8"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]": [
+        "M7"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]": [
+        "M1",
+        "M7"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]": [
+        "M7",
+        "M8"
+      ],
+      "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]": [
+        "M2",
+        "M3",
+        "M7",
+        "M8"
+      ],
+      "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block": [
+        "M5",
+        "M6",
+        "M7",
+        "M8"
+      ],
+      "tests/test_repokit_config.py::test_a_languages_value_that_is_not_a_list_of_names_exits_2": [
+        "M12"
+      ]
+    },
+    "identical": [
+      [
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-local]",
+        "tests/test_pre_commit_hook.py::test_a_paradox_localization_file_without_a_bom_is_blocked[localisation-main]"
+      ]
+    ],
+    "contained": [
+      [
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"ck3\"\\n-files3-paradox: no descriptor.mod in mod/ or at the root]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[-files2-paradox: set paradox-game (e.g. \"ck3\") to choose a linter]",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_is_linted_by_tiger_and_gets_no_python_checks"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_a_paradox_mod_without_tiger_installed_skips_cleanly"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"vic3\"\\n-files0-Linting the mod with vic3-tiger (.)]"
+      ],
+      [
+        "tests/test_pre_push_hook.py::test_the_paradox_game_and_the_mod_folder_choose_the_linter[paradox-game = \"stellaris\"\\n-files1-paradox: no default linter for stellaris]",
+        "tests/test_pre_push_hook.py::test_tiger_findings_are_shown_and_never_block"
+      ]
+    ],
+    "killed_without_names": []
+  }
+}

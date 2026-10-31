@@ -1,0 +1,11 @@
+{
+ "test_command": ["python", "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/test_repokit_config.py", "tests/test_pre_push_hook.py", "tests/test_pre_commit_hook.py", "-k", "paradox or tiger or bom or languages"],
+ "mutations": [
+  {"id": "R1", "file": "hooks/pre-push", "original": "        ck3|vic3|imperator)", "mutated": "        ck3|imperator)", "note": "vic3 is dropped from the game list."},
+  {"id": "R2", "file": "hooks/pre-push", "original": "            echo \"  paradox: set paradox-game (e.g. \\\"ck3\\\") to choose a linter -- linter skipped\"\n            return 0", "mutated": "            echo \"  paradox: set paradox-game (e.g. \\\"ck3\\\") to choose a linter -- linter skipped\"", "note": "The empty-game branch falls through."},
+  {"id": "R3", "file": "hooks/pre-push", "original": "            echo \"  paradox: no default linter for $REPOKIT_PARADOX_GAME -- set check-command.paradox\"\n            return 0", "mutated": "            echo \"  paradox: no default linter for $REPOKIT_PARADOX_GAME -- set check-command.paradox\"", "note": "The unknown-game branch falls through."},
+  {"id": "R4", "file": "hooks/pre-push", "original": "    if [ -z \"$_rk_mod\" ]; then", "mutated": "    if [ -n \"$_rk_mod\" ]; then", "note": "The no-descriptor guard is inverted."},
+  {"id": "R5", "file": "hooks/pre-commit", "original": "rk_read_settings private-patterns private-branches output version-source versioning languages || _rk_settings_ok=false", "mutated": "rk_read_settings private-patterns private-branches output version-source versioning || _rk_settings_ok=false", "note": "pre-commit no longer reads languages."},
+  {"id": "R6", "file": "hooks/pre-commit", "original": "    if [ -n \"$_rk_nobom\" ]; then", "mutated": "    if [ -z \"$_rk_nobom\" ]; then", "note": "The block test is inverted."}
+ ]
+}

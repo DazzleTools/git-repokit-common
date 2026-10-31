@@ -1,0 +1,29 @@
+{
+ "test_command": [
+  "python",
+  "-m",
+  "pytest",
+  "-q",
+  "-p",
+  "no:cacheprovider",
+  "tests/test_pre_push_hook.py",
+  "-k",
+  "choose_the_linter"
+ ],
+ "mutations": [
+  {
+   "id": "R2",
+   "file": "hooks/pre-push",
+   "original": "            echo \"  paradox: set paradox-game (e.g. \\\"ck3\\\") to choose a linter -- linter skipped\"\n            return 0",
+   "mutated": "            echo \"  paradox: set paradox-game (e.g. \\\"ck3\\\") to choose a linter -- linter skipped\"",
+   "note": "The empty-game branch falls through."
+  },
+  {
+   "id": "R3",
+   "file": "hooks/pre-push",
+   "original": "            echo \"  paradox: no default linter for $REPOKIT_PARADOX_GAME -- set check-command.paradox\"\n            return 0",
+   "mutated": "            echo \"  paradox: no default linter for $REPOKIT_PARADOX_GAME -- set check-command.paradox\"",
+   "note": "The unknown-game branch falls through."
+  }
+ ]
+}
