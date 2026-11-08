@@ -8,8 +8,10 @@ mechanical normalization, resolves to exactly ONE existing file.
 Everything else is reported, never touched.
 
 Zero dependencies beyond the Python stdlib. Reuses the wikilink parser
-from generate-backlinks.py (shipped alongside this file) so there is
-exactly one parsing truth.
+and the encoding-aware reader from generate-backlinks.py (shipped
+alongside this file): one parsing truth, and one reading truth. A UTF-16
+(or CP1252) note is decoded rather than silently mis-read as
+NUL-interleaved UTF-8 that matches no links at all (issue #12).
 
 Usage:
     python vault-lint.py [vault]              # report (default; read-only)
@@ -70,6 +72,33 @@ EXPECTED_ORPHAN_DIRS = {
 
 FENCE_RE = _GB.FENCE_RE
 
+# One reading truth as well as one parsing truth: reuse generate-backlinks'
+# encoding-aware reader (issue #12). Assuming UTF-8 with errors="replace"
+# decoded a UTF-16 note to '#\x00 \x00T\x00i...' because NUL is a valid UTF-8
+# byte and is never replaced -- every [[wikilink]] in the file then failed to
+# match, so a broken link was reported as zero broken links and the vault
+# passed a --check it should have failed.
+read_note_text = _GB.read_note_text
+
+# Notes read as something other than plain UTF-8 this run (resolved path ->
+# encoding), and notes that could not be decoded at all. Surfaced in the
+# report and in --check so a file the tool is blind to is never a silent pass.
+non_utf8_notes: dict = {}
+undecodable_notes: set = set()
+
+
+def _read_note(p: Path) -> str:
+    """Read a note through the shared reader, recording when it was not plain
+    UTF-8 (or not decodable at all) so the report can name it."""
+    before_non_utf8 = len(_GB._non_utf8)
+    before_undecodable = len(_GB._undecodable)
+    text = read_note_text(p)
+    if len(_GB._non_utf8) > before_non_utf8:
+        non_utf8_notes[p] = _GB._non_utf8[-1][1]
+    if len(_GB._undecodable) > before_undecodable:
+        undecodable_notes.add(p)
+    return text
+
 
 # ---------------------------------------------------------------------------
 # Vault location (vault-spec LAYOUT-1/LAYOUT-3): link validation is only
@@ -112,7 +141,7 @@ def link_occurrences(vault: Path):
     """Yield (source_file, target, line_no) for every wikilink outside code."""
     for p in sorted(vault.rglob("*.md")):
         try:
-            text = p.read_text(encoding="utf-8", errors="replace")
+            text = _read_note(p)
         except OSError:
             continue
         in_fence = False
@@ -207,15 +236,34 @@ def apply_fixes(vault: Path, files: dict, broken, dry_run: bool):
         by_file.setdefault(src, []).append((target, cands[0], tags))
 
     for src, jobs in by_file.items():
-        # newline="" on BOTH read and write: text-mode newline translation
-        # otherwise rewrites every LF to CRLF on Windows (or, if suppressed
-        # only on write, CRLF files to LF) -- touching every line of a file
-        # whose fix changed one line. Found by real-file sweep; the unit
-        # fixtures were blind to it because they were authored with the same
-        # translating write. splitlines(keepends=True) preserves whatever
-        # endings were actually read.
-        with src.open("r", encoding="utf-8", errors="replace", newline="") as fh:
-            text = fh.read()
+        # newline="" on the write, plus byte-level reading through the shared
+        # reader, keeps endings exactly as they were read: text-mode
+        # translation would otherwise rewrite every LF to CRLF on Windows (or,
+        # if suppressed only on write, CRLF files to LF) -- touching every
+        # line of a file whose fix changed one line. Found by real-file sweep;
+        # the unit fixtures were blind to it because they were authored with
+        # the same translating write. splitlines(keepends=True) preserves
+        # whatever endings were read.
+        #
+        # Refuse a note we cannot round-trip. The shared reader decodes a
+        # UTF-16/CP1252 note correctly, but the write below is UTF-8, so
+        # rewriting one would silently convert (and corrupt) its encoding.
+        # vault-spec requires UTF-8: report the file, never rewrite it.
+        before_non_utf8 = len(_GB._non_utf8)
+        try:
+            text = _read_note(src)
+        except OSError as exc:
+            refused.append((src, jobs[0][0], jobs[0][2], f"unreadable: {exc}"))
+            continue
+        if len(_GB._non_utf8) > before_non_utf8:
+            encoding = _GB._non_utf8[-1][1]
+            for target, _canon, tags in jobs:
+                refused.append((src, target, tags,
+                                f"not UTF-8 ({encoding}) — refusing to rewrite "
+                                "(would change the file's encoding)"))
+            continue
+        # splitlines(keepends=True) preserves whatever endings were read, so
+        # newline="" below keeps LF/CRLF exactly (v0.2.9 guard).
         lines = text.splitlines(keepends=True)
         in_fence = False
         for idx, line in enumerate(lines):
@@ -273,7 +321,7 @@ def freshness(vault: Path):
     newest = max((p.stat().st_mtime for p in vault.rglob("*.md")), default=None)
     out = []
     for moc in maps:
-        m = re.search(r"last_refreshed:\s*(\d{4}-\d{2}-\d{2})", moc.read_text(encoding="utf-8", errors="replace"))
+        m = re.search(r"last_refreshed:\s*(\d{4}-\d{2}-\d{2})", _read_note(moc))
         if m and newest:
             behind = (datetime.fromtimestamp(newest).date()
                       - datetime.strptime(m.group(1), "%Y-%m-%d").date()).days
@@ -285,7 +333,7 @@ def manifest_coverage(vault: Path, files: dict):
     manifest = vault / "_oracle" / "manifest.md"
     if not manifest.is_file():
         return None
-    text = manifest.read_text(encoding="utf-8", errors="replace")
+    text = _read_note(manifest)
     doc_keys = [k for k in files if not k.startswith(("_maps/", "_oracle/", "_todo/"))]
     missing = [k for k in doc_keys if k.rsplit("/", 1)[-1] not in text]
     return len(doc_keys), missing
@@ -305,6 +353,9 @@ def main():
 
     if args.dry_run and not args.fix:
         print("note: --dry-run only affects --fix; running plain report mode\n")
+
+    non_utf8_notes.clear()
+    undecodable_notes.clear()
 
     vault = _locate_vault(Path(args.vault).resolve()) if args.vault else _GB.find_vault_root(Path.cwd())
     if not vault or not Path(vault).is_dir():
@@ -330,7 +381,10 @@ def main():
     findings = len(broken) - len(fixed)
     if args.check:
         print(f"vault-lint: {len(broken)} broken link(s), {len(unexpected_orphans)} unexpected orphan(s)")
-        sys.exit(1 if (broken or unexpected_orphans) else 0)
+        if non_utf8_notes or undecodable_notes:
+            print(f"vault-lint: {len(non_utf8_notes)} note(s) not UTF-8"
+                  + (f", {len(undecodable_notes)} undecodable" if undecodable_notes else ""))
+        sys.exit(1 if (broken or unexpected_orphans or non_utf8_notes or undecodable_notes) else 0)
 
     print(f"Vault: {vault}")
     print(f"Files: {len(files)}  |  Broken links: {len(broken)}"
@@ -362,6 +416,14 @@ def main():
         print(f"\nManifest coverage: {n - len(missing)}/{n} docs mentioned in _oracle/manifest.md"
               + (f"; missing: {', '.join(m.rsplit('/', 1)[-1] for m in missing[:5])}"
                  + (" ..." if len(missing) > 5 else "") if missing else ""))
+    if non_utf8_notes:
+        print(f"\nNon-UTF-8 notes ({len(non_utf8_notes)}) — links ARE parsed; convert to UTF-8:")
+        for p, encoding in sorted(non_utf8_notes.items(), key=lambda kv: kv[0].as_posix()):
+            print(f"  {p.relative_to(vault).as_posix()}  ({encoding})")
+    if undecodable_notes:
+        print(f"\nUndecodable notes ({len(undecodable_notes)}) — could not be decoded; skipped entirely:")
+        for p in sorted(undecodable_notes, key=lambda x: x.as_posix()):
+            print(f"  {p.relative_to(vault).as_posix()}")
 
     sys.exit(1 if findings or unexpected_orphans else 0)
 
