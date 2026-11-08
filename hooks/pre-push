@@ -73,7 +73,7 @@ cd "$REPO_ROOT" 2>/dev/null || true
 # style every message below uses. A failure is reported further down, at the
 # point the push is validated.
 _rk_settings_ok=true
-rk_read_settings test-command print-warning strict-branches output languages check-command paradox-game || _rk_settings_ok=false
+rk_read_settings test-command print-warning strict-branches output languages check-command paradox-game private-patterns private-branches || _rk_settings_ok=false
 rk_setup_output
 # Each language's steps live in hooks/profiles/<language>.sh beside this hook.
 # languages always arrives with a value (the setting, detection, or python);
@@ -88,6 +88,9 @@ fi
 # CAPTURE PUSHED REFS (read stdin once, iterate multiple times below)
 # =============================================================================
 REFS_DATA=$(cat)
+# git sends an empty list when it has already rejected every ref; checked once
+_rk_has_refs=false
+[ -n "$(printf '%s' "$REFS_DATA" | tr -d '[:space:]')" ] && _rk_has_refs=true
 
 # =============================================================================
 # PROTECTED BRANCH BLOCK (opt-in, per-repo)
@@ -122,10 +125,115 @@ if [ -n "$REFS_DATA" ] && [ -n "$PROTECTED_BRANCH_RE" ]; then
     done <<< "$REFS_DATA"
 fi
 
+# =============================================================================
+# PRIVATE CONTENT BLOCK (every project)
+# Refuse a push when a commit it sends ADDS a private file: one that matches
+# the private-content list pre-commit uses (rk_private_paths in lib.sh: the
+# built-in list plus the project's private-patterns, minus .repokit-allowlist).
+# Pre-commit stops such a file reaching a public branch by a commit; this stops
+# it reaching a remote by any route -- pushing a private branch, a
+# fast-forward merge (which makes no commit, so pre-commit never runs), or a
+# commit made with --no-verify. Only commits the remote does not have yet are
+# read, so files a project already pushed never block it; a file a later
+# commit deleted still blocks, because it travels inside the commits.
+# A deliberate push to a remote that is itself private: REPOKIT_ALLOW_PRIVATE_PUSH=1
+# for one push, or `git config repokit.allowPrivatePush true` for the clone.
+# =============================================================================
+_rk_allow_private=false
+case "${REPOKIT_ALLOW_PRIVATE_PUSH:-}" in ""|0|false|no) ;; *) _rk_allow_private=true ;; esac
+[ "$(git config --bool --get repokit.allowPrivatePush 2>/dev/null)" = true ] && _rk_allow_private=true
+
+if $_rk_has_refs && ! $_rk_allow_private; then
+    if ! $_rk_settings_ok; then
+        echo -e "${RED}${RK_FAIL} BLOCKED: the repokit-common settings could not be read${NC}"
+        echo "  private-patterns cannot be checked until the [tool.repokit-common] table named above is fixed"
+        exit 1
+    fi
+    _rk_gd="$(git rev-parse --absolute-git-dir 2>/dev/null)"
+    _rk_added="$_rk_gd/.repokit-push-added.$$"
+    _rk_hits="$_rk_gd/.repokit-push-hits.$$"
+    _rk_allow="$_rk_gd/.repokit-push-allowlist.$$"
+    trap 'rm -f "$_rk_added" "$_rk_hits" "$_rk_allow"' EXIT
+    _rk_blocked=false
+    while read -r local_ref local_sha remote_ref remote_sha; do
+        [ -z "$local_sha" ] && continue
+        case "$local_sha" in *[!0]*) ;; *) continue ;; esac   # a delete sends nothing
+        # The commits the remote does not have: not reachable from its
+        # remote-tracking refs, nor from the ref's current value there.
+        _rk_not=(--not "--remotes=$1")
+        case "$remote_sha" in
+            *[!0]*) git cat-file -e "$remote_sha^{commit}" 2>/dev/null && _rk_not+=("$remote_sha") ;;
+        esac
+        # Fail closed (exit 2, "could not run"): a list that cannot be written
+        # would check nothing.
+        if [ -z "$_rk_gd" ] || ! git log -z --no-renames --format= --name-only --diff-filter=A \
+                "$local_sha" "${_rk_not[@]}" > "$_rk_added"; then
+            echo -e "${RED}${RK_FAIL} PUSH BLOCKED - pre-push could not list the files this push adds${NC}" >&2
+            echo "   (tried to write: $_rk_added)" >&2
+            exit 2
+        fi
+        # The consent is the allowlist inside the commits being pushed, never
+        # the working tree's: it travels with the files it approves, and a
+        # branch pushed while another is checked out is judged by its own.
+        git show "$local_sha:.repokit-allowlist" > "$_rk_allow" 2>/dev/null || : > "$_rk_allow"
+        RK_ALLOWLIST="$_rk_allow" rk_private_paths "$_rk_added" > "$_rk_hits"
+        [ -s "$_rk_hits" ] || continue
+
+        _rk_branch="${local_ref#refs/heads/}"
+        echo "" >&2
+        if rk_is_private_branch "$_rk_branch"; then
+            # A private branch: an allowlist would make the files public, which
+            # is not the question here -- the question is the remote.
+            echo -e "${RED}${RK_FAIL} PUSH BLOCKED - Private Content Protection${NC}" >&2
+            echo "" >&2
+            echo "ERROR: $_rk_branch is a private branch, and pushing it to $1 would send private files:" >&2
+            sed 's/^/  - /' "$_rk_hits" >&2
+            echo "" >&2
+            echo "Keep it local and push only the public branches. If $1 is itself private:" >&2
+            echo "  - Every push from this clone: git config repokit.allowPrivatePush true" >&2
+            echo "  - This push only: REPOKIT_ALLOW_PRIVATE_PUSH=1 git push <args>" >&2
+            echo "  - git push --no-verify (this skips every git hook, not just this check)" >&2
+            rk_refused_lines push private-branch "$_rk_branch" \
+                config:repokit.allowPrivatePush,env:REPOKIT_ALLOW_PRIVATE_PUSH,no-verify "$_rk_hits"
+            _rk_blocked=true
+            continue
+        fi
+
+        # A public branch: the files skipped pre-commit (a --no-verify commit,
+        # or a fast-forward merge, which makes no commit).
+        echo -e "${RED}${RK_FAIL} PUSH BLOCKED - Private Content Protection${NC}" >&2
+        echo "" >&2
+        echo "ERROR: pushing $_rk_branch to $1 would send private files that no allowlist entry approves:" >&2
+        sed 's/^/  - /' "$_rk_hits" >&2
+        echo "" >&2
+        echo "They reached $_rk_branch without the pre-commit check (a --no-verify commit, or a" >&2
+        echo "fast-forward merge, which makes no commit). A file deleted later still counts:" >&2
+        echo "it travels inside the commit that added it." >&2
+        if rk_can_prompt && rk_ask "Are these meant to be public? Add them to .repokit-allowlist and push?"; then
+            rk_allowlist_add "$_rk_hits"
+            echo -e "${GREEN}${RK_OK}${NC} Added to .repokit-allowlist -- commit it, so the next push carries the consent" >&2
+            continue
+        fi
+        echo "" >&2
+        echo "To push them:" >&2
+        echo "  - If they should be public: add each path, one per line, to .repokit-allowlist" >&2
+        echo "    and commit it (the push reads the allowlist from the commits it sends)" >&2
+        echo "  - This push only: REPOKIT_ALLOW_PRIVATE_PUSH=1 git push <args>" >&2
+        echo "  - git push --no-verify (this skips every git hook, not just this check)" >&2
+        rk_refused_lines push public-branch "$_rk_branch" allowlist,env:REPOKIT_ALLOW_PRIVATE_PUSH,no-verify "$_rk_hits"
+        _rk_blocked=true
+    done <<< "$REFS_DATA"
+    if $_rk_blocked; then
+        echo "" >&2
+        exit 1
+    fi
+    rm -f "$_rk_added" "$_rk_hits" "$_rk_allow"
+fi
+
 # No refs at all: git calls the hook with an empty list when it has already
 # rejected every ref (a non-fast-forward push). Nothing will be pushed, so
 # there is nothing to check -- say that, rather than calling it a tag push.
-if [ -z "$(printf '%s' "$REFS_DATA" | tr -d '[:space:]')" ]; then
+if ! $_rk_has_refs; then
     echo -e "${GREEN}Nothing to push -- skipping validation${NC}"
     exit 0
 fi

@@ -92,11 +92,8 @@ echo "   Branch: $CURRENT_BRANCH (public)"
 # content regex check below. Intended for DELIBERATE move-aside artifacts that
 # carry signal-bearing extensions like .bak (preserved pre-pivot source: "this
 # is the old version, do not use this") which would otherwise trip the regex.
-ALLOWLIST_FILE="$REPO_ROOT/.repokit-allowlist"
-allowed() {
-    [ -f "$ALLOWLIST_FILE" ] || return 1
-    grep -v '^[[:space:]]*#' "$ALLOWLIST_FILE" | grep -v '^[[:space:]]*$' | grep -Fxq -- "$1"
-}
+# The built-in list, the project's patterns and the allowlist are matched by
+# rk_private_paths in lib.sh, which pre-push uses too.
 
 # Staged paths, NUL-delimited, written to a temp file.
 #
@@ -138,9 +135,6 @@ fi
 # newly blocked 20 of its tracked files; as prefixes, none.)
 # A config file that exists but cannot be read blocks the commit: silently
 # dropping the project's patterns would let exactly those files through.
-PATTERNS_FILE="$GIT_DIR_ABS/.repokit-patterns.$$"
-trap 'cleanup_staged; rm -f "$PATTERNS_FILE"' EXIT
-: > "$PATTERNS_FILE"
 if [ "$_rk_settings_ok" != true ]; then
     echo ""
     echo "${RK_FAIL} COMMIT BLOCKED - the repokit-common settings could not be read"
@@ -148,56 +142,52 @@ if [ "$_rk_settings_ok" != true ]; then
     echo "   table named above is fixed."
     exit 1
 fi
-[ -n "${REPOKIT_PRIVATE_PATTERNS-}" ] && printf '%s\n' "$REPOKIT_PRIVATE_PATTERNS" > "$PATTERNS_FILE"
 
-# One grep over the whole list instead of an `echo | grep` per file. On a large
-# commit the per-file form costs thousands of process spawns, which is slow
-# everywhere and painful on Windows. The allowlist is consulted only for paths
-# that actually match, so the common case (no private content) costs one grep.
-# The project's prefixes are matched in one awk pass (a leading "./" or "/" on
-# an entry is ignored: every entry is relative to the repository root).
-has_private_content=0
-private_candidates=$( {
-    tr '\0' '\n' < "$STAGED_LIST" |
-        grep -E "^.*/__private__.*|^.*/private_.*|^.*~$|\.backup$|\.bak$|\.log$|\.tmp$|^\.env.*|^\.env\.local$|^\.env\.private$|^convos/|^credentials/|^logs/|^nul$|^private/|^revisions/|^secrets/|^test-runs/|^test_runs/"
-    if [ -s "$PATTERNS_FILE" ]; then
-        tr '\0' '\n' < "$STAGED_LIST" | awk '
-            NR == FNR { sub(/\r$/, ""); sub(/^\.\//, ""); sub(/^\/+/, ""); if ($0 != "") p[++n] = $0; next }
-            { for (i = 1; i <= n; i++) if (index($0, p[i]) == 1) { print; next } }
-        ' "$PATTERNS_FILE" -
-    fi
-} | sort -u )
+# One grep and one awk pass over the whole list instead of an `echo | grep`
+# per file (rk_private_paths in lib.sh). On a large commit the per-file form
+# costs thousands of process spawns, which is slow everywhere and painful on
+# Windows. The allowlist is consulted only for paths that actually match.
+rk_private_paths "$STAGED_LIST" > "$HITS_FILE"
 
-if [ -n "$private_candidates" ]; then
-    printf '%s\n' "$private_candidates" | while IFS= read -r file; do
-        [ -n "$file" ] || continue
-        allowed "$file" && continue
-        printf '%s\n' "$file"
-    done > "$HITS_FILE"
-
-    if [ -s "$HITS_FILE" ]; then
-        has_private_content=1
-        echo ""
-        echo "${RK_FAIL} COMMIT BLOCKED - Private Content Protection"
-        echo ""
-        echo "ERROR: Attempting to commit private files to public branch '$CURRENT_BRANCH':"
-        echo ""
-        while IFS= read -r file; do
-            echo "  - $file"
-        done < "$HITS_FILE"
-    fi
-    rm -f "$HITS_FILE"
-fi
-
-if [ $has_private_content -eq 1 ]; then
+if [ -s "$HITS_FILE" ]; then
+    echo ""
+    echo "${RK_FAIL} COMMIT BLOCKED - Private Content Protection"
+    echo ""
+    echo "ERROR: Attempting to commit private files to public branch '$CURRENT_BRANCH':"
+    echo ""
+    while IFS= read -r file; do
+        echo "  - $file"
+    done < "$HITS_FILE"
     echo ""
     echo "These files should only exist in private branches."
     echo "To fix this:"
-    echo "  1. Switch to private branch: git checkout private"
+    echo "  1. Commit them on a private branch instead (private-branches in the"
+    echo "     project's settings names which branches are private)"
     echo "  2. Or unstage these files: git reset HEAD <file>"
     echo "  3. Or remove from working directory: rm <file>"
     echo ""
-    exit 1
+    echo "To commit them anyway:"
+    echo "  - If a file should be public: add its path, one per line, to"
+    echo "    .repokit-allowlist at the repository root, then commit again."
+    echo "  - For this one commit only: git commit --no-verify"
+    echo "    (this skips every git hook, not just this check)"
+    echo ""
+    # A person at a terminal may say yes here: the paths go into the allowlist,
+    # which is staged into this same commit, so the consent travels with the
+    # files and the push later passes without asking again. Anyone else (an
+    # agent, CI) gets the refusal at once (rk_can_prompt in lib.sh).
+    if rk_can_prompt && rk_ask "Add these paths to .repokit-allowlist and commit them?"; then
+        rk_allowlist_add "$HITS_FILE"
+        if git add -- "$REPO_ROOT/.repokit-allowlist"; then
+            echo "${RK_OK} Added to .repokit-allowlist (staged with this commit)"
+        else
+            echo "${RK_FAIL} COMMIT BLOCKED - could not stage .repokit-allowlist"
+            exit 1
+        fi
+    else
+        rk_refused_lines commit public-branch "$CURRENT_BRANCH" allowlist,no-verify "$HITS_FILE"
+        exit 1
+    fi
 fi
 
 # Check for large files (>10MB)

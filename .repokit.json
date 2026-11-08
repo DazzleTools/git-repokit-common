@@ -1,7 +1,7 @@
 {
   "repokit_managed": true,
   "generated_by": "repokit",
-  "version": "0.4.3",
+  "version": "0.4.4",
   "project_name": "git-repokit-common",
   "language": "python",
   "branch_strategy": "minimal",

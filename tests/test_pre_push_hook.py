@@ -92,6 +92,213 @@ def _push(repo, files, branch="main", env=None):
     return r, r.stdout + r.stderr, landed.returncode == 0
 
 
+PRIVATE_BRANCH_HINTS = ("git config repokit.allowPrivatePush true", "REPOKIT_ALLOW_PRIVATE_PUSH=1",
+                        "git push --no-verify")
+PUBLIC_BRANCH_HINTS = (".repokit-allowlist", "REPOKIT_ALLOW_PRIVATE_PUSH=1", "git push --no-verify")
+
+
+def _remote_has(remote, branch):
+    return _git(remote, "rev-parse", "--verify", "-q", f"refs/heads/{branch}", check=False).returncode == 0
+
+
+def _person_at_a_terminal(tmp_path, answer):
+    """The environment of a person at a terminal who answers `answer`: no CI, no
+    Claude Code, prompting allowed, and a stand-in terminal holding the answer."""
+    tty = tmp_path / "tty"
+    tty.write_text(answer + "\n", encoding="utf-8")
+    env = {k: v for k, v in os.environ.items() if k not in ("CI", "CLAUDECODE", "REPOKIT_INTERACTIVE")}
+    env["REPOKIT_TTY"] = str(tty)
+    return env
+
+
+def test_a_push_that_adds_a_private_file_is_refused(repo):
+    """CONSEQUENCE: 10 (safety) -- pushing a private branch whose commits add a private
+    file (nested-branch's promoted convos/) is refused, nothing lands, the message names
+    the file and the ways to push to a private remote, and agents get the stable line."""
+    r, out, landed = _push(repo, {"convos/talk.md": "a conversation\n"}, branch="private")
+    assert r.returncode != 0 and not landed, out
+    assert "PUSH BLOCKED - Private Content Protection" in out
+    assert "private is a private branch" in out
+    for hint in PRIVATE_BRANCH_HINTS:
+        assert hint in out, hint
+    assert ("repokit-common: refused push=private-content reason=private-branch ref=private "
+            "fix=config:repokit.allowPrivatePush,env:REPOKIT_ALLOW_PRIVATE_PUSH,no-verify "
+            "path=convos/talk.md") in out
+
+
+def test_a_private_file_on_a_public_branch_is_refused_at_push(repo):
+    """CONSEQUENCE: 10 (safety) -- a private file that reached main without pre-commit
+    (a fast-forward merge, or --no-verify) is stopped before it reaches the remote, with
+    the allowlist offered as the way to make it public."""
+    r, out, landed = _push(repo, {"logs/run.log": "x\n"}, branch="main")
+    assert r.returncode != 0 and not landed, out
+    for hint in PUBLIC_BRANCH_HINTS:
+        assert hint in out, hint
+    assert ("repokit-common: refused push=private-content reason=public-branch ref=main "
+            "fix=allowlist,env:REPOKIT_ALLOW_PRIVATE_PUSH,no-verify path=logs/run.log") in out
+
+
+def test_the_push_reads_the_allowlist_from_the_commits_it_sends(repo):
+    """CONSEQUENCE: 9 (safety) -- an allowlist entry only in the working tree is not
+    consent: the files travel with the commits, so the consent must too."""
+    root, hooks, remote = repo
+    r, out, landed = _push(repo, {"logs/run.log": "x\n"}, branch="main")
+    assert not landed, out
+    _w(root / ".repokit-allowlist", "logs/run.log\n")      # written, never committed
+    r = _git(root, "push", "-q", "origin", "main", hooks_dir=hooks, check=False)
+    assert r.returncode != 0, r.stdout + r.stderr
+    _git(root, "add", ".repokit-allowlist")
+    _git(root, "commit", "-q", "-m", "allow", hooks_dir=hooks)
+    r = _git(root, "push", "-q", "origin", "main", hooks_dir=hooks, check=False)
+    assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_a_person_who_says_yes_at_the_terminal_pushes_and_the_allowlist_records_it(repo, tmp_path):
+    """CONSEQUENCE: 8 (usability) -- on a public branch a person at a terminal is asked;
+    yes lets this push through and writes the entry to .repokit-allowlist."""
+    root, hooks, remote = repo
+    env = _person_at_a_terminal(tmp_path, "y")
+    r, out, landed = _push(repo, {"logs/run.log": "x\n"}, branch="main", env=env)
+    assert r.returncode == 0 and landed, out
+    assert "[y/N]" in out
+    assert "logs/run.log" in (root / ".repokit-allowlist").read_text(encoding="utf-8").splitlines()
+
+
+def test_a_person_who_says_no_or_nothing_is_refused(repo, tmp_path):
+    """CONSEQUENCE: 8 (safety) -- anything but y is no; an empty answer refuses."""
+    root, hooks, remote = repo
+    env = _person_at_a_terminal(tmp_path, "")
+    r, out, landed = _push(repo, {"logs/run.log": "x\n"}, branch="main", env=env)
+    assert r.returncode != 0 and not landed, out
+    assert "[y/N]" in out
+    assert not (root / ".repokit-allowlist").exists()
+
+
+@pytest.mark.parametrize("signal", [("CLAUDECODE", "1"), ("CI", "true"), ("REPOKIT_INTERACTIVE", "0")])
+def test_an_agent_or_ci_is_refused_at_once_never_asked(repo, tmp_path, signal):
+    """CONSEQUENCE: 10 (safety) -- in a Claude Code session, in CI, or with prompting
+    off, the hook never asks (even with a terminal that would answer yes): it refuses
+    at once and prints the stable line an agent reads."""
+    env = _person_at_a_terminal(tmp_path, "y")
+    env[signal[0]] = signal[1]
+    r, out, landed = _push(repo, {"logs/run.log": "x\n"}, branch="main", env=env)
+    assert r.returncode != 0 and not landed, out
+    assert "[y/N]" not in out
+    assert "repokit-common: refused push=private-content reason=public-branch" in out
+
+
+def test_a_private_branch_is_never_offered_the_allowlist(repo, tmp_path):
+    """CONSEQUENCE: 9 (safety) -- on a private branch the question is the remote, not
+    whether the files are public: no prompt, even when a terminal would answer yes."""
+    env = _person_at_a_terminal(tmp_path, "y")
+    r, out, landed = _push(repo, {"convos/talk.md": "a conversation\n"}, branch="private", env=env)
+    assert r.returncode != 0 and not landed, out
+    assert "[y/N]" not in out
+
+
+def test_a_file_deleted_later_in_the_push_still_blocks(repo):
+    """CONSEQUENCE: 9 (safety) -- deleting the file in a later commit does not help: it
+    travels inside the commit that added it."""
+    root, hooks, remote = repo
+    _git(root, "checkout", "-q", "-b", "private")
+    _w(root / "convos" / "talk.md", "a conversation\n")
+    _git(root, "add", "-A")
+    _git(root, "commit", "-q", "-m", "add", hooks_dir=hooks)
+    _git(root, "rm", "-q", "convos/talk.md")
+    _git(root, "commit", "-q", "-m", "remove", hooks_dir=hooks)
+    r = _git(root, "push", "-q", "origin", "private", hooks_dir=hooks, check=False)
+    assert r.returncode != 0, r.stdout + r.stderr
+    assert "convos/talk.md" in r.stdout + r.stderr
+    assert not _remote_has(remote, "private")
+
+
+def test_a_rename_into_a_private_folder_blocks(repo):
+    """CONSEQUENCE: 8 (safety) -- a public file moved into a private folder counts as
+    added there (renames are not followed), so the move is refused."""
+    root, hooks, remote = repo
+    r, out, landed = _push(repo, {"notes.md": "notes\n"}, branch="main")
+    assert landed, out
+    (root / "revisions").mkdir()
+    _git(root, "mv", "notes.md", "revisions/notes.md")
+    _git(root, "commit", "-q", "-m", "move", hooks_dir=hooks)
+    r = _git(root, "push", "-q", "origin", "main", hooks_dir=hooks, check=False)
+    assert r.returncode != 0, r.stdout + r.stderr
+    assert "revisions/notes.md" in r.stdout + r.stderr
+
+
+def test_the_environment_override_lets_one_push_through(repo):
+    """CONSEQUENCE: 8 (behaviour) -- REPOKIT_ALLOW_PRIVATE_PUSH=1 pushes a private branch
+    to a remote that is itself private; 0 does not."""
+    env = dict(os.environ, REPOKIT_ALLOW_PRIVATE_PUSH="0")
+    r, out, landed = _push(repo, {"convos/talk.md": "a conversation\n"}, branch="private", env=env)
+    assert r.returncode != 0 and not landed, out
+    root, hooks, remote = repo
+    env = dict(os.environ, REPOKIT_ALLOW_PRIVATE_PUSH="1")
+    r = _git(root, "push", "-q", "origin", "private", hooks_dir=hooks, check=False, env=env)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _remote_has(remote, "private")
+
+
+def test_the_git_config_override_lets_every_push_through(repo):
+    """CONSEQUENCE: 7 (behaviour) -- repokit.allowPrivatePush=true in the clone's own
+    config allows every push from it (a backup remote that is private)."""
+    root, hooks, remote = repo
+    _git(root, "config", "repokit.allowPrivatePush", "true")
+    r, out, landed = _push(repo, {"convos/talk.md": "a conversation\n"}, branch="private")
+    assert r.returncode == 0 and landed, out
+
+
+def test_files_the_remote_already_has_never_block(repo):
+    """CONSEQUENCE: 9 (adoption) -- only commits the remote does not have are read: a
+    project whose history already pushed a private-looking file is not refused on its
+    next push (4 of 51 consumers track such files on main)."""
+    root, hooks, remote = repo
+    env = dict(os.environ, REPOKIT_ALLOW_PRIVATE_PUSH="1")
+    r, out, landed = _push(repo, {"logs/old.log": "x\n"}, branch="main", env=env)
+    assert landed, out
+    r, out, landed = _push(repo, {"README.md": "changed\n"}, branch="main")
+    assert r.returncode == 0 and landed, out
+    r, out, landed = _push(repo, {"src.txt": "x\n"}, branch="feature/x")
+    assert r.returncode == 0 and landed, out
+
+
+def test_a_branch_named_private_without_private_files_pushes(repo):
+    """CONSEQUENCE: 8 (adoption) -- the branch name alone never blocks: feature/x (in
+    the default private-branches list) and private push when they add no private file."""
+    r, out, landed = _push(repo, {"src.txt": "x\n"}, branch="feature/x")
+    assert r.returncode == 0 and landed, out
+    r, out, landed = _push(repo, {"src2.txt": "x\n"}, branch="private")
+    assert r.returncode == 0 and landed, out
+
+
+def test_the_allowlist_exempts_a_file_at_push(repo):
+    """CONSEQUENCE: 6 (behaviour) -- a path in .repokit-allowlist is deliberately public."""
+    files = {".repokit-allowlist": "logs/keep.log\n", "logs/keep.log": "kept\n"}
+    r, out, landed = _push(repo, files, branch="main")
+    assert r.returncode == 0 and landed, out
+
+
+def test_a_project_private_pattern_blocks_at_push(repo):
+    """CONSEQUENCE: 8 (safety) -- the project's private-patterns are refused at push as
+    at commit."""
+    files = {".repokit-common.toml": '[tool.repokit-common]\nprivate-patterns = ["drafts/"]\n',
+             "drafts/a.md": "draft\n"}
+    r, out, landed = _push(repo, files, branch="main")
+    assert r.returncode != 0 and not landed, out
+    assert "drafts/a.md" in out
+
+
+def test_deleting_a_remote_branch_is_not_blocked(repo):
+    """CONSEQUENCE: 6 (behaviour) -- a delete sends nothing, so it is never refused."""
+    root, hooks, remote = repo
+    env = dict(os.environ, REPOKIT_ALLOW_PRIVATE_PUSH="1")
+    r, out, landed = _push(repo, {"convos/talk.md": "a conversation\n"}, branch="private", env=env)
+    assert landed, out
+    r = _git(root, "push", "-q", "origin", "--delete", "private", hooks_dir=hooks, check=False)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert not _remote_has(remote, "private")
+
+
 def test_failing_tests_block_a_push_to_main_and_show_why(repo):
     """CONSEQUENCE: 9 (safety) -- a failing test stops a push to main, and the output names the failure."""
     r, out, landed = _push(repo, {"tests/test_a.py": FAILING})

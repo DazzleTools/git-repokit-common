@@ -1,0 +1,41 @@
+===== A. as it is today (vendored 0.3.4): exit 0
+   Warning: No Python package directory found (no __init__.py)
+   Skipping package-specific checks
+   -- Pre-push validation for branch: dev
+   Checking Python syntax...
+   [OK] Python syntax check passed
+   Running tests...
+     test-command: echo test-command-stubbed-for-the-probe
+   [OK] test-command passed
+   Checking for debug statements...
+   [OK] No debugger statements found
+   [OK] Pre-push validation complete
+   Ready to push to dev
+===== B. 0.4.3 pulled, nothing else: exit 0
+   -- Pre-push validation for branch: dev
+     Product languages: python
+   Checking Python syntax...
+   [OK] Python syntax check passed
+   Running tests...
+     test-command: echo test-command-stubbed-for-the-probe
+   test-command-stubbed-for-the-probe
+   [OK] test-command passed
+   Checking for debug statements...
+   [OK] No debugger statements found
+   [OK] Pre-push validation complete
+   Ready to push to dev
+===== C. 0.4.3 + languages = ["typescript", "python"]: exit 0
+   -- Pre-push validation for branch: dev
+     Product languages: typescript python
+   Checking Python syntax...
+   [OK] Python syntax check passed
+   Running tests...
+     test-command: echo test-command-stubbed-for-the-probe
+   test-command-stubbed-for-the-probe
+   [OK] test-command passed
+   Checking for debug statements...
+   [OK] No debugger statements found
+   [OK] Pre-push validation complete
+   Ready to push to dev
+
+(bash used: C:\Program Files\Git\bin\bash.exe; temp folder removed: True)

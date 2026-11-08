@@ -8,6 +8,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) 
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-11-07
+
+> **For consuming projects:** pull the subtree; no re-install. Private files are now checked at push as well as at commit. Files a project already pushed never block it. For a remote that is itself private, set `git config repokit.allowPrivatePush true` in that clone. Agents and CI are never asked a question: they get a refusal with a fixed-format line to read.
+
+### Added
+- **Private files are checked at push too** - until now only pre-commit checked them, at commit time; pre-push now refuses a push whose new commits add one
+  - catches a private branch pushed by mistake, a fast-forward merge (which makes no commit), and a `--no-verify` commit
+  - the same list pre-commit uses: built-in patterns, `private-patterns`, minus `.repokit-allowlist`
+  - only commits the remote does not have are read; a branch's name alone never blocks
+- **One consent, asked once: an entry in `.repokit-allowlist`** - the push reads it from the commits it sends, so it travels with the files it approves
+  - at a terminal, a refused commit asks to add the paths; yes stages the allowlist into the same commit
+  - a refused push on a public branch asks the same; a private branch is never offered it: the question there is the remote
+- **Agents and CI fail fast** - no prompt when `CI` or `CLAUDECODE` is set, with `REPOKIT_INTERACTIVE=0`, or without a terminal; the refusal comes at once
+  - one line per refused file for tools to read: `repokit-common: refused push=private-content reason=... ref=... fix=... path=...`
+  - the hook exits 1 when it refuses, 2 when it cannot run
+- **Overrides** - `REPOKIT_ALLOW_PRIVATE_PUSH=1` for one push, `git config repokit.allowPrivatePush true` for a clone whose remote is private, `--no-verify`
+
+### Changed
+- **A refused commit says how to commit anyway** - `.repokit-allowlist` for a file that should be public, `--no-verify` for one commit
+  - no longer suggests `git checkout private`, which fails in a worktree layout
+- **One private-content list** - pre-commit and pre-push share `rk_private_paths` in `lib.sh`
+
 ## [0.4.3] - 2026-10-30
 
 > **For consuming projects:** pull the subtree; no re-install. A project that sets nothing behaves as before. A project detected or declared as JavaScript, TypeScript, C/C++ or C# no longer gets the Python syntax check; to keep it for Python tooling, declare `languages = ["javascript", "python"]`.

@@ -197,3 +197,108 @@ rk_is_strict_branch() {
     fi
     rk_match_patterns "$1" "$_rk_patterns"
 }
+
+# The built-in private-content list, shared by pre-commit (staged paths) and
+# pre-push (paths a push would add). Extended regular expressions.
+RK_PRIVATE_PATH_RE="^.*/__private__.*|^.*/private_.*|^.*~$|\.backup$|\.bak$|\.log$|\.tmp$|^\.env.*|^\.env\.local$|^\.env\.private$|^convos/|^credentials/|^logs/|^nul$|^private/|^revisions/|^secrets/|^test-runs/|^test_runs/"
+
+# rk_allowed PATH -- true when PATH is listed in the allowlist (one per line;
+# # comments and blank lines allowed): a path that is deliberately public. The
+# allowlist is RK_ALLOWLIST when set (pre-push sets it to the pushed tip's
+# copy), else .repokit-allowlist at the repository root. Run rk_locate first.
+rk_allowed() {
+    _rk_al="${RK_ALLOWLIST:-$REPO_ROOT/.repokit-allowlist}"
+    [ -f "$_rk_al" ] || return 1
+    grep -v '^[[:space:]]*#' "$_rk_al" | grep -v '^[[:space:]]*$' | grep -Fxq -- "$1"
+}
+
+# rk_allowlist_add LIST -- appends each path in LIST (a file, one path per
+# line) to .repokit-allowlist at the repository root, once each. The person's
+# yes at a prompt (rk_ask) is the consent it records.
+rk_allowlist_add() {
+    _rk_al="$REPO_ROOT/.repokit-allowlist"
+    if [ ! -f "$_rk_al" ]; then
+        printf '%s\n' "# Paths that match the private-content list but are meant to be public." \
+            "# One per line, from the repository root; read by the pre-commit and pre-push hooks." > "$_rk_al"
+    fi
+    while IFS= read -r _rk_ap; do
+        [ -n "$_rk_ap" ] || continue
+        grep -Fxq -- "$_rk_ap" "$_rk_al" || printf '%s\n' "$_rk_ap" >> "$_rk_al"
+    done < "$1"
+}
+
+# rk_can_prompt -- true when a person can be asked, and the terminal is then
+# open for reading on fd 3. Never in CI, never in a Claude Code session
+# (CLAUDECODE; its commands cannot open a terminal anyway), never with
+# REPOKIT_INTERACTIVE=0, and only when the terminal (REPOKIT_TTY, default
+# /dev/tty) opens. Every other case answers no at once: an agent or a CI job
+# gets the refusal and its machine-readable line, never a wait.
+rk_can_prompt() {
+    [ -z "${CI:-}" ] || return 1
+    [ -z "${CLAUDECODE:-}" ] || return 1
+    [ "${REPOKIT_INTERACTIVE:-1}" != 0 ] || return 1
+    { exec 3<"${REPOKIT_TTY:-/dev/tty}"; } 2>/dev/null || return 1
+    return 0
+}
+
+# rk_ask QUESTION -- asks on stderr and reads the answer from fd 3 (opened by
+# rk_can_prompt); true only on y or yes. Bash waits at most 60 seconds; an
+# empty answer, a timeout or end of input is no. Closes fd 3.
+rk_ask() {
+    printf '%s [y/N] ' "$1" >&2
+    _rk_ans=""
+    if [ -n "${BASH_VERSION:-}" ]; then
+        read -r -t 60 _rk_ans <&3 || _rk_ans="${_rk_ans:-}"
+    else
+        read -r _rk_ans <&3 || _rk_ans="${_rk_ans:-}"
+    fi
+    exec 3<&-
+    printf '\n' >&2
+    _rk_ans="${_rk_ans%"$(printf '\r')"}"   # a Windows terminal or file may end the line with CR
+    case "$_rk_ans" in [yY]|[yY][eE][sS]) return 0 ;; esac
+    return 1
+}
+
+# rk_refused_lines KIND REASON REF FIX LIST -- one machine-readable line per
+# path in LIST (a file, one path per line), on stderr, for agents and CI:
+#   repokit-common: refused <KIND>=private-content reason=<REASON> ref=<REF> fix=<FIX> path=<path>
+# git swallows a hook's exit code, so this line is the signal to read. path is
+# last, so a path with spaces stays whole; FIX is comma-separated codes
+# (allowlist, env:REPOKIT_ALLOW_PRIVATE_PUSH, config:repokit.allowPrivatePush, no-verify).
+rk_refused_lines() {
+    while IFS= read -r _rk_rp; do
+        [ -n "$_rk_rp" ] || continue
+        printf 'repokit-common: refused %s=private-content reason=%s ref=%s fix=%s path=%s\n' \
+            "$1" "$2" "$3" "$4" "$_rk_rp" >&2
+    done < "$5"
+}
+
+# rk_private_paths LIST -- prints, one per line and sorted, the paths in LIST (a
+# file of NUL-delimited paths) that are private content: they match the
+# built-in list, or one of the project's private-patterns (REPOKIT_PRIVATE_PATTERNS,
+# literal path prefixes from the root, one per line; a leading "./" or "/" is
+# ignored), and are not in .repokit-allowlist. One grep and one awk pass over
+# the whole list; the allowlist is read only for paths that matched. Read
+# settings (private-patterns) first.
+rk_private_paths() {
+    {
+        tr '\0' '\n' < "$1" | grep -E "$RK_PRIVATE_PATH_RE"
+        if [ -n "${REPOKIT_PRIVATE_PATTERNS-}" ]; then
+            # The patterns travel in the environment (ENVIRON does no escape
+            # processing, unlike awk -v); the paths on stdin.
+            tr '\0' '\n' < "$1" | _RK_PP="$REPOKIT_PRIVATE_PATTERNS" awk '
+                BEGIN {
+                    m = split(ENVIRON["_RK_PP"], raw, "\n")
+                    for (j = 1; j <= m; j++) {
+                        e = raw[j]; sub(/\r$/, "", e); sub(/^\.\//, "", e); sub(/^\/+/, "", e)
+                        if (e != "") p[++n] = e
+                    }
+                }
+                { for (i = 1; i <= n; i++) if (index($0, p[i]) == 1) { print; next } }
+            '
+        fi
+    } | sort -u | while IFS= read -r _rk_pp; do
+        [ -n "$_rk_pp" ] || continue
+        rk_allowed "$_rk_pp" || printf '%s\n' "$_rk_pp"
+    done
+}

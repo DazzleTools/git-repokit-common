@@ -25,7 +25,7 @@ HOOK = Path(__file__).resolve().parents[1] / "hooks" / "pre-commit"
 pytestmark = pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
 
 
-def _git(cwd, *args, hooks_dir=None, check=True):
+def _git(cwd, *args, hooks_dir=None, check=True, env=None):
     cmd = [
         "git",
         "-c", "user.email=hooktest@example.invalid",
@@ -38,7 +38,17 @@ def _git(cwd, *args, hooks_dir=None, check=True):
     cmd += list(args)
     # The hook prints UTF-8 (emoji); decode it as such on every platform.
     return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", check=check)
+                          encoding="utf-8", errors="replace", check=check, env=env)
+
+
+def _person_at_a_terminal(tmp_path, answer):
+    """The environment of a person at a terminal who answers `answer` (see the
+    pre-push tests): no CI, no Claude Code, prompting allowed, a stand-in terminal."""
+    tty = tmp_path / "tty"
+    tty.write_text(answer + "\n", encoding="utf-8")
+    env = {k: v for k, v in os.environ.items() if k not in ("CI", "CLAUDECODE", "REPOKIT_INTERACTIVE")}
+    env["REPOKIT_TTY"] = str(tty)
+    return env
 
 
 @pytest.fixture
@@ -118,6 +128,54 @@ def test_private_file_is_blocked_in_a_worktree(worktree):
     assert "COMMIT BLOCKED" in result.stdout + result.stderr
     assert "private/notes.md" in result.stdout + result.stderr
     assert not _in_head(wt, "private/notes.md")
+
+
+def test_a_person_who_says_yes_commits_the_file_and_its_allowlist_entry_together(repo, tmp_path):
+    """CONSEQUENCE: 8 (usability) -- at a terminal the refusal asks; yes adds the path to
+    .repokit-allowlist and stages it into the same commit, so the consent travels with
+    the file and the push later passes."""
+    root, hooks = repo
+    (root / "notes.bak").write_text("kept on purpose\n")
+    _git(root, "add", "-f", "notes.bak")
+    r = _git(root, "commit", "-q", "-m", "keep", hooks_dir=hooks, check=False,
+             env=_person_at_a_terminal(tmp_path, "y"))
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert _in_head(root, "notes.bak") and _in_head(root, ".repokit-allowlist")
+    committed = _git(root, "show", "HEAD:.repokit-allowlist").stdout.splitlines()
+    assert "notes.bak" in committed
+
+
+@pytest.mark.parametrize("answer,signal", [("n", None), ("", None), ("y", ("CLAUDECODE", "1")), ("y", ("CI", "true"))])
+def test_no_answer_or_no_person_refuses_with_the_stable_line(repo, tmp_path, answer, signal):
+    """CONSEQUENCE: 9 (safety) -- n, an empty answer, a Claude Code session or CI: the
+    commit is refused, nothing is added, and agents get the stable line."""
+    root, hooks = repo
+    env = _person_at_a_terminal(tmp_path, answer)
+    if signal:
+        env[signal[0]] = signal[1]
+    (root / "notes.bak").write_text("x\n")
+    _git(root, "add", "-f", "notes.bak")
+    r = _git(root, "commit", "-q", "-m", "keep", hooks_dir=hooks, check=False, env=env)
+    out = r.stdout + r.stderr
+    assert r.returncode != 0, out
+    assert not (root / ".repokit-allowlist").exists()
+    assert ("repokit-common: refused commit=private-content reason=public-branch ref=main "
+            "fix=allowlist,no-verify path=notes.bak") in out
+    assert ("[y/N]" in out) == (signal is None)
+
+
+def test_the_refusal_names_the_ways_to_commit_anyway(repo):
+    """CONSEQUENCE: 6 (usability) -- a refused commit says how to make a file public
+    (.repokit-allowlist) and how to skip the check once (--no-verify), and no longer
+    tells a worktree layout to `git checkout private`, which fails there."""
+    root, hooks = repo
+    out = _commit(root, hooks, "private/notes.md")
+    text = out.stdout + out.stderr
+    assert out.returncode != 0, text
+    assert "To commit them anyway:" in text
+    assert ".repokit-allowlist" in text
+    assert "git commit --no-verify" in text
+    assert "git checkout private" not in text
 
 
 def test_private_file_is_blocked_in_a_clone(repo):

@@ -26,6 +26,11 @@ _UNSIGNED_GIT_ENV = {
 def pytest_configure(config):
     for key, value in _UNSIGNED_GIT_ENV.items():
         os.environ.setdefault(key, value)
+    # A refused commit or push asks at a terminal (0.4.4, rk_can_prompt). Run
+    # from a person's own terminal, a test hook could open it and wait for an
+    # answer nobody gives. No hook a test starts may prompt; the prompt tests
+    # drop this variable and give the hook a stand-in terminal (REPOKIT_TTY).
+    os.environ["REPOKIT_INTERACTIVE"] = "0"
 
 
 @pytest.fixture
